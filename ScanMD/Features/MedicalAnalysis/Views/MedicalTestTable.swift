@@ -27,17 +27,17 @@ struct MedicalTestTable: View {
                     
                     Text(AppStrings.Medical.colResult)
                         .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                        .frame(width: 80, alignment: .trailing)
+                        .frame(width: 75, alignment: .trailing)
                     
                     Text(AppStrings.Medical.colRange)
                         .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                        .frame(width: 85, alignment: .trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     
                     Text(AppStrings.Medical.colStatus)
                         .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                        .frame(width: 65, alignment: .center)
+                        .frame(width: 60, alignment: .center)
                 }
-                .padding(.horizontal, AppSpacing.md)
+                .padding(.horizontal, AppSpacing.sm)
                 .padding(.vertical, AppSpacing.sm)
                 .background(AppColors.glassSurface)
                 
@@ -45,26 +45,31 @@ struct MedicalTestTable: View {
                 
                 // Lab Items Rows
                 ForEach(Array(testItems.enumerated()), id: \.element.id) { index, item in
-                    HStack {
+                    HStack(spacing: AppSpacing.xs) {
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text(item.testName)
                                 .appTypography(AppTypography.subheadline, color: AppColors.textPrimary)
-                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .lineLimit(2)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Text("\(item.resultValue) \(item.unit)")
+                        Text(item.unit.isEmpty ? item.resultValue : "\(item.resultValue) \(item.unit)")
                             .appTypography(AppTypography.callout, color: item.status == .normal ? AppColors.textPrimary : AppColors.warning)
-                            .frame(width: 80, alignment: .trailing)
+                            .frame(width: 75, alignment: .trailing)
+                            .minimumScaleFactor(0.85)
+                            .lineLimit(1)
                         
                         Text(item.referenceRange)
                             .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                            .frame(width: 85, alignment: .trailing)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .minimumScaleFactor(0.75)
+                            .lineLimit(2)
                         
                         statusBadge(for: item.status)
-                            .frame(width: 65, alignment: .center)
+                            .frame(width: 60, alignment: .center)
                     }
-                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.sm)
                     .background(index % 2 == 0 ? AppColors.cardBackground : AppColors.background)
                     

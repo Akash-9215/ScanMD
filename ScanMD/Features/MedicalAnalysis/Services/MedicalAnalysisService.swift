@@ -43,11 +43,12 @@ final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
         let flaggedNames = flagged.map { "\($0.testName): \($0.resultValue) \($0.unit) (Ref: \($0.referenceRange))" }
         
         let (impression, advice) = parser.extractImpressionAndAdvice(from: ocrText, flagged: flagged)
+        let reportTitle = header.title != "Clinical Diagnostic Report" ? header.title : classification.reportType
         
         return MedicalReportModel(
             isMedicalReport: true,
-            confidenceScore: max(0.88, classification.confidence),
-            reportType: classification.reportType,
+            confidenceScore: max(0.92, classification.confidence),
+            reportType: reportTitle,
             patientName: header.name,
             patientAge: header.ageGender.isEmpty ? "N/A" : header.ageGender,
             hospitalName: header.hospital,
