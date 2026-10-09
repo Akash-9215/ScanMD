@@ -20,7 +20,7 @@ struct DocumentRowCard: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppRadius.md)
                         .fill(AppColors.primaryGradient)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                     
                     Image(systemName: AppIcons.docFill)
                         .font(.system(size: AppSize.iconMd))
@@ -33,33 +33,31 @@ struct DocumentRowCard: View {
                         .appTypography(AppTypography.headline, color: AppColors.textPrimary)
                         .lineLimit(1)
                     
-                    HStack(spacing: AppSpacing.xs) {
-                        Text(document.dateCreated.formatted(date: .abbreviated, time: .shortened))
-                        Text("•")
-                        Text("\(document.pageCount) Pg")
-                        Text("•")
-                        Text(document.fileSizeString)
-                    }
-                    .appTypography(AppTypography.caption, color: AppColors.textSecondary)
+                    Text("\(document.dateCreated.formatted(date: .numeric, time: .shortened)) • \(document.pageCount) Pg • \(document.fileSizeString)")
+                        .appTypography(AppTypography.caption, color: AppColors.textSecondary)
+                        .lineLimit(1)
                 }
                 
                 Spacer()
                 
-                // Share Action
-                ShareLink(item: document.fileURL) {
-                    Image(systemName: AppIcons.share)
-                        .font(.system(size: AppSize.iconSm))
-                        .foregroundStyle(AppColors.primary)
+                // Action Buttons Group
+                HStack(spacing: AppSpacing.sm) {
+                    ShareLink(item: document.fileURL) {
+                        Image(systemName: AppIcons.share)
+                            .font(.system(size: AppSize.iconSm))
+                            .foregroundStyle(AppColors.primary)
+                            .padding(AppSpacing.xs)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: AppIcons.trash)
+                            .font(.system(size: AppSize.iconSm))
+                            .foregroundStyle(AppColors.error)
+                            .padding(AppSpacing.xs)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                
-                // Delete Action Menu
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: AppIcons.trash)
-                        .font(.system(size: AppSize.iconSm))
-                        .foregroundStyle(AppColors.error)
-                }
-                .buttonStyle(.plain)
             }
             .padding(AppSpacing.md)
             .background(AppColors.cardBackground)

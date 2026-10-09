@@ -31,16 +31,17 @@ struct HomeView: View {
                                 action: viewModel.handleLibraryAction
                             )
                         }
+                        .padding(.top, AppSpacing.sm)
                         
                         // Hero Document Scanner Card
                         GlassCard {
                             VStack(spacing: AppSpacing.lg) {
-                                ZStack {
+                                ZStack(alignment: .center) {
                                     Circle()
                                         .stroke(AppColors.accentGradient, lineWidth: 2)
-                                        .frame(width: 110, height: 110)
-                                        .scaleEffect(pulseRing ? 1.15 : 0.95)
-                                        .opacity(pulseRing ? 0.35 : 0.75)
+                                        .frame(width: 104, height: 104)
+                                        .scaleEffect(pulseRing ? 1.15 : 0.96)
+                                        .opacity(pulseRing ? 0.4 : 0.8)
                                         .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: pulseRing)
                                     
                                     Circle()
@@ -52,6 +53,7 @@ struct HomeView: View {
                                         .font(.system(size: AppSize.iconLg, weight: .bold))
                                         .foregroundStyle(AppColors.textInverse)
                                 }
+                                .frame(width: 120, height: 120, alignment: .center)
                                 .onAppear { pulseRing = true }
                                 
                                 VStack(spacing: AppSpacing.xs) {
@@ -70,6 +72,7 @@ struct HomeView: View {
                                     action: viewModel.handlePrimaryAction
                                 )
                             }
+                            .frame(maxWidth: .infinity)
                             .padding(AppSpacing.md)
                         }
                         .padding(.horizontal, AppSpacing.lg)
@@ -77,7 +80,7 @@ struct HomeView: View {
                         // Metric Stat Summary Badge
                         StatBadgeView(
                             title: AppStrings.Home.scansCount,
-                            value: "\(viewModel.savedCount) PDFs",
+                            value: "\(viewModel.savedCount) PDF\(viewModel.savedCount == 1 ? "" : "s")",
                             iconName: AppIcons.docFill
                         )
                         .padding(.horizontal, AppSpacing.lg)
