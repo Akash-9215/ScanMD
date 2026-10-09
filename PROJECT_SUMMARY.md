@@ -58,6 +58,7 @@ ScanMD/
     │   │   └── MedicalReportModel.swift    # Clinical model containing patient header, lab table, & pathologist insights
     │   ├── Services/
     │   │   ├── MedicalDocumentClassifierService.swift # Core ML & NLP engine classifying medical vs non-medical documents
+    │   │   ├── MedicalOCRParserService.swift # Regex-based dynamic clinical OCR parsing engine for patient metadata & lab tables
     │   │   └── MedicalAnalysisService.swift # Deep clinical parser extracting patient info, lab tables, & pathologist impressions
     │   ├── ViewModels/
     │   │   └── MedicalAnalysisViewModel.swift # State manager orchestrating document analysis workflow
