@@ -10,7 +10,6 @@ import SwiftUI
 /// Redesigned premium home dashboard featuring scanner hero card, metric counters, and recent scans.
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var pulseRing: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -36,25 +35,7 @@ struct HomeView: View {
                         // Hero Document Scanner Card
                         GlassCard {
                             VStack(spacing: AppSpacing.lg) {
-                                ZStack(alignment: .center) {
-                                    Circle()
-                                        .stroke(AppColors.accentGradient, lineWidth: 2)
-                                        .frame(width: 104, height: 104)
-                                        .scaleEffect(pulseRing ? 1.15 : 0.96)
-                                        .opacity(pulseRing ? 0.4 : 0.8)
-                                        .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: pulseRing)
-                                    
-                                    Circle()
-                                        .fill(AppColors.primaryGradient)
-                                        .frame(width: 80, height: 80)
-                                        .shadow(color: AppColors.primary.opacity(0.4), radius: AppSpacing.md)
-                                    
-                                    Image(systemName: AppIcons.docScanner)
-                                        .font(.system(size: AppSize.iconLg, weight: .bold))
-                                        .foregroundStyle(AppColors.textInverse)
-                                }
-                                .frame(width: 120, height: 120, alignment: .center)
-                                .onAppear { pulseRing = true }
+                                HeroScannerBadge()
                                 
                                 VStack(spacing: AppSpacing.xs) {
                                     Text(viewModel.titleText)

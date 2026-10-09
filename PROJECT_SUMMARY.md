@@ -32,6 +32,7 @@ ScanMD/
 │   │       ├── PrimaryButton.swift         # Reusable glowing gradient button component
 │   │       ├── AppHeaderView.swift         # Reusable navigation header bar component
 │   │       ├── StatBadgeView.swift         # Reusable metric card badge component
+│   │       ├── HeroScannerBadge.swift      # Concentric pulsing hero badge component with anchor centering
 │   │       └── IconButton.swift            # Reusable glass icon button with micro-animations
 │   └── Localization/
 │       ├── AppStrings.swift                # String catalog wrapper (zero hardcoded strings)
@@ -58,7 +59,7 @@ ScanMD/
         │   ├── PDFGeneratorService.swift   # Service rendering pages into multi-page PDF files
         │   └── OCRService.swift            # Vision & PDFKit text recognition engine for images and PDF files
         ├── ViewModels/
-        │   └── DocumentScannerViewModel.swift # Full-screen scanner workflow, auto-save & state management
+        │   └── DocumentScannerViewModel.swift # Full-screen scanner workflow & state management
         └── Views/
             ├── VNDocumentCameraRepresentable.swift # VisionKit camera controller wrapper
             ├── DocumentScannerView.swift   # Custom full-screen document scanner UI
@@ -81,7 +82,7 @@ ScanMD/
 - Radii: `sm` (4pt), `md` (8pt), `lg` (12pt), `xl` (16pt), `pill` (999pt)
 
 ### Reusable Components Catalog
-- `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `IconButton`, `DocumentRowCard`
+- `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `HeroScannerBadge`, `IconButton`, `DocumentRowCard`
 
 ---
 
@@ -89,7 +90,7 @@ ScanMD/
 
 | Feature | Components / Files | Status | Description |
 | :--- | :--- | :--- | :--- |
-| **Design System** | `AppColors`, `AppTypography`, `AppSpacing`, `AppIcons`, `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `IconButton` | ✅ Complete | Reusable UI components & design system tokens |
+| **Design System** | `AppColors`, `AppTypography`, `AppSpacing`, `AppIcons`, `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `HeroScannerBadge`, `IconButton` | ✅ Complete | Reusable UI components & design system tokens |
 | **Localization** | `AppStrings`, `Localizable.xcstrings` | ✅ Complete | Centralized localized string catalog (Zero hardcoding) |
 | **Home Dashboard** | `HomeView`, `HomeViewModel` | ✅ Complete | Redesigned artist-grade dashboard with hero card, stat counters, and recent scans |
 | **Document Scanning** | `DocumentScannerView`, `VNDocumentCameraRepresentable`, `DocumentScannerViewModel` | ✅ Complete | Full-screen camera scanner interface with VisionKit, temporary preview rendering & explicit user saving |
