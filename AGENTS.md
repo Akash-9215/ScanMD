@@ -91,3 +91,10 @@ Every AI agent and developer working on this project MUST strictly adhere to the
 - **ViewModels**: Must end with `ViewModel` suffix (e.g., `DocumentScannerViewModel`).
 - **Services / Protocols**: Must end with `Service`, `Repository`, or `Protocol` suffix.
 - **File Names**: Must match the primary type defined inside (e.g., `DocumentScannerView.swift`).
+
+---
+
+## 11. Mandatory Project Summary Maintenance (`PROJECT_SUMMARY.md`)
+- All AI agents and developers MUST maintain and continuously update `PROJECT_SUMMARY.md` in the root directory whenever files, features, architecture, models, services, or design system tokens are created, modified, or removed.
+- Read `PROJECT_SUMMARY.md` at the start of tasks to rapidly understand project architecture and state without performing repetitive full-codebase analysis.
+

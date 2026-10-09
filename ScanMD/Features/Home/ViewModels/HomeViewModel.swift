@@ -12,20 +12,44 @@ import Combine
 final class HomeViewModel: ObservableObject {
     @Published private(set) var titleText: String = AppStrings.welcomeTitle
     @Published private(set) var subtitleText: String = AppStrings.welcomeSubtitle
-    @Published private(set) var isProcessing: Bool = false
-    @Published private(set) var isAnimatingHero: Bool = false
+    @Published private(set) var recentDocuments: [SavedDocumentModel] = []
+    @Published private(set) var savedCount: Int = 0
+    @Published var showScannerSheet: Bool = false
+    @Published var showLibrarySheet: Bool = false
+    @Published var selectedRecentDoc: SavedDocumentModel?
     
-    /// Prepares view animations on initial screen appearance
-    func onAppear() {
-        isAnimatingHero = true
+    private let storageService: DocumentStorageService
+    private var cancellables = Set<AnyCancellable>()
+    
+    init(storageService: DocumentStorageService = .shared) {
+        self.storageService = storageService
+        setupObservers()
+        loadData()
     }
     
-    /// Triggers asynchronous document scanning task with animated feedback
+    /// Reloads recent documents and metric counts
+    func loadData() {
+        let all = storageService.fetchAllDocuments()
+        self.savedCount = all.count
+        self.recentDocuments = Array(all.prefix(3))
+    }
+    
+    /// Triggers scanner workflow
     func handlePrimaryAction() {
-        isProcessing = true
-        Task {
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
-            self.isProcessing = false
-        }
+        showScannerSheet = true
+    }
+    
+    /// Opens library view
+    func handleLibraryAction() {
+        showLibrarySheet = true
+    }
+    
+    private func setupObservers() {
+        NotificationCenter.default.publisher(for: .documentStorageDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.loadData()
+            }
+            .store(in: &cancellables)
     }
 }

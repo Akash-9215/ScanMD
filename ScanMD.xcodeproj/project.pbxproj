@@ -85,6 +85,7 @@
 			knownRegions = (
 				en,
 				Base,
+				mr,
 			);
 			mainGroup = 2EE5B1A73078917E00C2193B;
 			minimizedProjectReferenceProxies = 1;
@@ -246,6 +247,7 @@
 				DEVELOPMENT_TEAM = WLHUQ8UC7R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "ScanMD requires camera access to scan physical documents and generate PDFs.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -278,6 +280,7 @@
 				DEVELOPMENT_TEAM = WLHUQ8UC7R;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "ScanMD requires camera access to scan physical documents and generate PDFs.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

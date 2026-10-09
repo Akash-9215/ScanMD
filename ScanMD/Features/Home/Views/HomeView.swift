@@ -7,68 +7,126 @@
 
 import SwiftUI
 
-/// Main home view featuring artist-grade glassmorphic visuals, dynamic gradient rings, and animated scanning interactions.
+/// Redesigned premium home dashboard featuring scanner hero card, metric counters, and recent scans.
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var pulseRing: Bool = false
     
     var body: some View {
-        ZStack {
-            // Background mesh gradient glow
-            AppColors.background
-                .ignoresSafeArea()
-            
-            VStack(spacing: AppSpacing.xxl) {
-                Spacer()
+        NavigationStack {
+            ZStack {
+                AppColors.background
+                    .ignoresSafeArea()
                 
-                // Animated Hero Scanner Icon with Pulse Ring
-                ZStack {
-                    Circle()
-                        .stroke(AppColors.accentGradient, lineWidth: 2)
-                        .frame(width: 130, height: 130)
-                        .scaleEffect(pulseRing ? 1.18 : 0.95)
-                        .opacity(pulseRing ? 0.35 : 0.75)
-                        .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: pulseRing)
-                    
-                    Circle()
-                        .fill(AppColors.primaryGradient)
-                        .frame(width: 96, height: 96)
-                        .shadow(color: AppColors.primary.opacity(0.4), radius: AppSpacing.lg, x: 0, y: 10)
-                    
-                    Image(systemName: AppIcons.docScanner)
-                        .font(.system(size: AppSize.iconXl, weight: .semibold))
-                        .foregroundStyle(AppColors.textInverse)
-                }
-                .onAppear { pulseRing = true }
-                
-                // Glassmorphic Card Container
-                GlassCard {
-                    VStack(spacing: AppSpacing.md) {
-                        Text(viewModel.titleText)
-                            .appTypography(AppTypography.title, color: AppColors.textPrimary)
-                            .multilineTextAlignment(.center)
+                ScrollView {
+                    VStack(spacing: AppSpacing.xl) {
+                        // Header Bar with Library Action Icon
+                        AppHeaderView(
+                            title: AppStrings.appName,
+                            subtitle: AppStrings.welcomeTitle
+                        ) {
+                            IconButton(
+                                iconName: AppIcons.folder,
+                                badgeCount: viewModel.savedCount,
+                                action: viewModel.handleLibraryAction
+                            )
+                        }
                         
-                        Text(viewModel.subtitleText)
-                            .appTypography(AppTypography.subheadline, color: AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
+                        // Hero Document Scanner Card
+                        GlassCard {
+                            VStack(spacing: AppSpacing.lg) {
+                                ZStack {
+                                    Circle()
+                                        .stroke(AppColors.accentGradient, lineWidth: 2)
+                                        .frame(width: 110, height: 110)
+                                        .scaleEffect(pulseRing ? 1.15 : 0.95)
+                                        .opacity(pulseRing ? 0.35 : 0.75)
+                                        .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: pulseRing)
+                                    
+                                    Circle()
+                                        .fill(AppColors.primaryGradient)
+                                        .frame(width: 80, height: 80)
+                                        .shadow(color: AppColors.primary.opacity(0.4), radius: AppSpacing.md)
+                                    
+                                    Image(systemName: AppIcons.docScanner)
+                                        .font(.system(size: AppSize.iconLg, weight: .bold))
+                                        .foregroundStyle(AppColors.textInverse)
+                                }
+                                .onAppear { pulseRing = true }
+                                
+                                VStack(spacing: AppSpacing.xs) {
+                                    Text(viewModel.titleText)
+                                        .appTypography(AppTypography.title2, color: AppColors.textPrimary)
+                                        .multilineTextAlignment(.center)
+                                    
+                                    Text(viewModel.subtitleText)
+                                        .appTypography(AppTypography.subheadline, color: AppColors.textSecondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                
+                                PrimaryButton(
+                                    title: AppStrings.Scanner.scanDocument,
+                                    iconName: AppIcons.cameraViewfinder,
+                                    action: viewModel.handlePrimaryAction
+                                )
+                            }
+                            .padding(AppSpacing.md)
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        
+                        // Metric Stat Summary Badge
+                        StatBadgeView(
+                            title: AppStrings.Home.scansCount,
+                            value: "\(viewModel.savedCount) PDFs",
+                            iconName: AppIcons.docFill
+                        )
+                        .padding(.horizontal, AppSpacing.lg)
+                        
+                        // Recent Documents Section
+                        if !viewModel.recentDocuments.isEmpty {
+                            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                                HStack {
+                                    Text(AppStrings.Home.recentTitle)
+                                        .appTypography(AppTypography.headline, color: AppColors.textPrimary)
+                                    Spacer()
+                                    Button(action: viewModel.handleLibraryAction) {
+                                        Text(AppStrings.Library.title)
+                                            .appTypography(AppTypography.footnote, color: AppColors.primary)
+                                    }
+                                }
+                                
+                                VStack(spacing: AppSpacing.sm) {
+                                    ForEach(viewModel.recentDocuments) { doc in
+                                        DocumentRowCard(
+                                            document: doc,
+                                            onTap: { viewModel.selectedRecentDoc = doc },
+                                            onDelete: { }
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.lg)
+                        }
                     }
+                    .padding(.bottom, AppSpacing.xxl)
                 }
-                .padding(.horizontal, AppSpacing.lg)
-                
-                Spacer()
-                
-                // Interactive Animated Action Button
-                PrimaryButton(
-                    title: AppStrings.Scanner.scanDocument,
-                    iconName: AppIcons.cameraViewfinder,
-                    isLoading: viewModel.isProcessing,
-                    action: viewModel.handlePrimaryAction
+            }
+            .onAppear(perform: viewModel.loadData)
+            .fullScreenCover(isPresented: $viewModel.showScannerSheet) {
+                DocumentScannerView()
+            }
+            .sheet(isPresented: $viewModel.showLibrarySheet) {
+                DocumentLibraryView()
+            }
+            .fullScreenCover(item: $viewModel.selectedRecentDoc) { doc in
+                let scannedDoc = ScannedDocumentModel(
+                    title: doc.title,
+                    pages: [],
+                    pdfURL: doc.fileURL
                 )
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.bottom, AppSpacing.xl)
+                PDFPreviewView(document: scannedDoc)
             }
         }
-        .onAppear(perform: viewModel.onAppear)
     }
 }
 
