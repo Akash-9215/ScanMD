@@ -15,6 +15,7 @@ struct OCRResultView: View {
     @State private var extractedText: String = ""
     @State private var isExtracting: Bool = false
     @State private var showCopiedToast: Bool = false
+    @State private var showMedicalReport: Bool = false
     private let ocrService: OCRServiceProtocol = OCRService()
     
     init(pages: [ScannedPageModel] = [], pdfURL: URL? = nil) {
@@ -53,11 +54,19 @@ struct OCRResultView: View {
                         }
                         .padding(.horizontal, AppSpacing.lg)
                         
-                        PrimaryButton(
-                            title: showCopiedToast ? AppStrings.OCR.copied : AppStrings.OCR.copy,
-                            iconName: showCopiedToast ? AppIcons.checkmark : AppIcons.copy,
-                            action: copyToClipboard
-                        )
+                        VStack(spacing: AppSpacing.sm) {
+                            PrimaryButton(
+                                title: AppStrings.Medical.title,
+                                iconName: AppIcons.stethoscope,
+                                action: { showMedicalReport = true }
+                            )
+                            
+                            PrimaryButton(
+                                title: showCopiedToast ? AppStrings.OCR.copied : AppStrings.OCR.copy,
+                                iconName: showCopiedToast ? AppIcons.checkmark : AppIcons.copy,
+                                action: copyToClipboard
+                            )
+                        }
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.bottom, AppSpacing.lg)
                     }
@@ -72,6 +81,9 @@ struct OCRResultView: View {
                             .foregroundStyle(AppColors.textPrimary)
                     }
                 }
+            }
+            .sheet(isPresented: $showMedicalReport) {
+                MedicalReportView(pages: pages, pdfURL: pdfURL)
             }
             .task {
                 await recognizeDocumentText()

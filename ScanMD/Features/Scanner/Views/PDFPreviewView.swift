@@ -13,6 +13,7 @@ struct PDFPreviewView: View {
     let onDone: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var showOCRSheet: Bool = false
+    @State private var showMedicalSheet: Bool = false
     @State private var isSaved: Bool = false
     @State private var showSaveToast: Bool = false
     
@@ -46,7 +47,7 @@ struct PDFPreviewView: View {
                         Spacer()
                         HStack(spacing: AppSpacing.sm) {
                             Image(systemName: AppIcons.checkmark)
-                                .foregroundStyle(AppColors.success)
+                               .foregroundStyle(AppColors.success)
                             Text(AppStrings.PDF.savedSuccess)
                                 .appTypography(AppTypography.subheadline, color: AppColors.textInverse)
                         }
@@ -71,6 +72,11 @@ struct PDFPreviewView: View {
                 }
                 
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: { showMedicalSheet = true }) {
+                        Image(systemName: AppIcons.stethoscope)
+                            .foregroundStyle(AppColors.primary)
+                    }
+                    
                     Button(action: { showOCRSheet = true }) {
                         Image(systemName: AppIcons.ocr)
                             .foregroundStyle(AppColors.primary)
@@ -99,6 +105,9 @@ struct PDFPreviewView: View {
             }
             .sheet(isPresented: $showOCRSheet) {
                 OCRResultView(pages: document.pages, pdfURL: document.pdfURL)
+            }
+            .sheet(isPresented: $showMedicalSheet) {
+                MedicalReportView(pages: document.pages, pdfURL: document.pdfURL)
             }
             .onAppear(perform: checkIfAlreadySaved)
         }

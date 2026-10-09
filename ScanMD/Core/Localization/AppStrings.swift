@@ -52,4 +52,24 @@ enum AppStrings {
         static let emptySubtitle = String(localized: "library_empty_subtitle", defaultValue: "Scanned and saved PDF documents will be displayed here.")
         static let delete = String(localized: "delete_document", defaultValue: "Delete Document")
     }
+    
+    enum Medical {
+        static let title = String(localized: "medical_analysis_title", defaultValue: "Clinical Report & Analysis")
+        static let verified = String(localized: "medical_verified", defaultValue: "Verified Medical Document")
+        static let unverified = String(localized: "medical_unverified", defaultValue: "Non-Medical Document")
+        static let patientName = String(localized: "medical_patient_name", defaultValue: "Patient")
+        static let facility = String(localized: "medical_facility", defaultValue: "Facility / Lab")
+        static let doctor = String(localized: "medical_doctor", defaultValue: "Physician / Pathologist")
+        static let date = String(localized: "medical_date", defaultValue: "Specimen Date")
+        static let labResults = String(localized: "medical_lab_results", defaultValue: "Structured Diagnostic Test Results")
+        static let colTest = String(localized: "medical_col_test", defaultValue: "Diagnostic Test")
+        static let colResult = String(localized: "medical_col_result", defaultValue: "Result")
+        static let colRange = String(localized: "medical_col_range", defaultValue: "Ref. Range")
+        static let colStatus = String(localized: "medical_col_status", defaultValue: "Status")
+        static let pathologistSummary = String(localized: "medical_pathologist_summary", defaultValue: "Pathology Assessment & Diagnostic Insights")
+        static let flaggedTitle = String(localized: "medical_flagged_title", defaultValue: "Flagged Out-of-Range Parameters")
+        static let recommendations = String(localized: "medical_recommendations", defaultValue: "Clinical Guidance & Next Steps")
+        static let analyzing = String(localized: "medical_analyzing", defaultValue: "Parsing Medical Parameters & Pathologist Assessment...")
+        static let nonMedicalMsg = String(localized: "medical_non_medical_msg", defaultValue: "This document appears to be a general non-medical scan. No clinical lab tests or health parameters were detected.")
+    }
 }

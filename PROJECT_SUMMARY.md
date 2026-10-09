@@ -7,11 +7,12 @@
 ## 1. Project Overview & Tech Stack
 - **App Name**: ScanMD
 - **Platform**: iOS 17.0+ (SwiftUI)
-- **Primary Goals**: High-performance document scanning (via VisionKit), image processing, OCR text recognition (via Vision & PDFKit), and instant multi-page PDF generation & storage management.
+- **Primary Goals**: High-performance document scanning (via VisionKit), image processing, OCR text recognition (via Vision & PDFKit), medical document verification, structured lab test alignment, and instant multi-page PDF generation & storage management.
 - **Tech Stack**:
   - **Framework**: SwiftUI (declarative UI with `@Observable` / `ObservableObject`)
   - **Scanning**: Full-Screen Camera Interface + VisionKit (`VNDocumentCameraViewController`)
   - **OCR Engine**: Vision Framework (`VNRecognizeTextRequest`) + `PDFKit` text extraction
+  - **Medical Classification & Pathology Engine**: Natural Language NLP + Clinical term signal heuristics classifier, structured diagnostic extractor, and expert pathologist recommendation engine
   - **PDF Processing**: PDFKit (`PDFDocument`, `PDFPage`, `UIGraphicsPDFRenderer`)
   - **Architecture**: Feature-First MVVM (Strict Separation of Concerns, Zero UI Business Logic)
 
@@ -51,6 +52,18 @@ ScanMD/
     │   └── Views/
     │       ├── DocumentRowCard.swift       # Reusable card component for document list item
     │       └── DocumentLibraryView.swift   # Saved PDF documents library sheet with search
+    ├── MedicalAnalysis/
+    │   ├── Models/
+    │   │   ├── MedicalTestItem.swift       # Model for individual diagnostic lab test parameters & status
+    │   │   └── MedicalReportModel.swift    # Clinical model containing patient header, lab table, & pathologist insights
+    │   ├── Services/
+    │   │   ├── MedicalDocumentClassifierService.swift # Core ML & NLP engine classifying medical vs non-medical documents
+    │   │   └── MedicalAnalysisService.swift # Deep clinical parser extracting patient info, lab tables, & pathologist impressions
+    │   ├── ViewModels/
+    │   │   └── MedicalAnalysisViewModel.swift # State manager orchestrating document analysis workflow
+    │   └── Views/
+    │       ├── MedicalTestTable.swift      # Formatted, aligned diagnostic lab test results table with status badges
+    │       └── MedicalReportView.swift     # Complete medical report view showing patient header, test table, & recommendations
     └── Scanner/
         ├── Models/
         │   ├── ScannedPageModel.swift      # Model for individual captured pages
@@ -64,8 +77,8 @@ ScanMD/
             ├── VNDocumentCameraRepresentable.swift # VisionKit camera controller wrapper
             ├── DocumentScannerView.swift   # Custom full-screen document scanner UI
             ├── PDFKitViewRepresentable.swift # PDFKit viewer wrapper
-            ├── PDFPreviewView.swift        # Full-screen PDF previewer with Save status & OCR action
-            └── OCRResultView.swift         # Recognized text viewer sheet with copy toast
+            ├── PDFPreviewView.swift        # Full-screen PDF previewer with Save status, Medical Report, & OCR action
+            └── OCRResultView.swift         # Recognized text viewer sheet with Medical Analysis shortcut & copy toast
 ```
 
 ---
@@ -82,7 +95,7 @@ ScanMD/
 - Radii: `sm` (4pt), `md` (8pt), `lg` (12pt), `xl` (16pt), `pill` (999pt)
 
 ### Reusable Components Catalog
-- `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `HeroScannerBadge`, `IconButton`, `DocumentRowCard`
+- `GlassCard`, `PrimaryButton`, `AppHeaderView`, `StatBadgeView`, `HeroScannerBadge`, `IconButton`, `DocumentRowCard`, `MedicalTestTable`
 
 ---
 
@@ -96,6 +109,7 @@ ScanMD/
 | **Document Scanning** | `DocumentScannerView`, `VNDocumentCameraRepresentable`, `DocumentScannerViewModel` | ✅ Complete | Full-screen camera scanner interface with VisionKit, temporary preview rendering & explicit user saving |
 | **PDF Generation** | `PDFGeneratorService`, `PDFKitViewRepresentable`, `PDFPreviewView` | ✅ Complete | Multi-page PDF renderer & full-screen previewer with saved status badge |
 | **OCR Text Recognition** | `OCRService`, `OCRResultView` | ✅ Complete | Vision & PDFKit accurate text extraction for live pages & saved PDF files |
+| **Medical Document Verification & Analysis** | `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Verifies medical document status, extracts structured patient metadata & test tables, flags out-of-range lab results, and generates pathologist diagnostic impressions and clinical recommendations |
 | **Document Library** | `DocumentStorageService`, `DocumentLibraryViewModel`, `DocumentLibraryView`, `DocumentRowCard` | ✅ Complete | Persistent storage with `documentStorageDidChange` observer updates & search |
 
 ---

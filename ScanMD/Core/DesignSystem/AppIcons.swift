@@ -35,4 +35,8 @@ enum AppIcons {
     static let grid = "grid"
     static let shutter = "circle.inset.filled"
     static let checkmarkShield = "checkmark.shield.fill"
+    static let stethoscope = "stethoscope"
+    static let crossCase = "cross.case.fill"
+    static let heartPulse = "waveform.path.ecg"
+    static let alertTriangle = "exclamationmark.triangle.fill"
 }
