@@ -13,57 +13,64 @@ struct MedicalTestTable: View {
     
     var body: some View {
         VStack(spacing: AppSpacing.zero) {
-            // Header Row
-            HStack {
-                Text(AppStrings.Medical.colTest)
-                    .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(AppStrings.Medical.colResult)
-                    .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                    .frame(width: 80, alignment: .trailing)
-                
-                Text(AppStrings.Medical.colRange)
-                    .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                    .frame(width: 85, alignment: .trailing)
-                
-                Text(AppStrings.Medical.colStatus)
-                    .appTypography(AppTypography.caption, color: AppColors.textSecondary)
-                    .frame(width: 65, alignment: .center)
-            }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, AppSpacing.sm)
-            .background(AppColors.glassSurface)
-            
-            Divider()
-            
-            // Lab Items Rows
-            ForEach(Array(testItems.enumerated()), id: \.element.id) { index, item in
+            if testItems.isEmpty {
+                Text("No tabular diagnostic parameters detected in this document.")
+                    .appTypography(AppTypography.subheadline, color: AppColors.textSecondary)
+                    .padding(AppSpacing.md)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                // Header Row
                 HStack {
-                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                        Text(item.testName)
-                            .appTypography(AppTypography.subheadline, color: AppColors.textPrimary)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(AppStrings.Medical.colTest)
+                        .appTypography(AppTypography.caption, color: AppColors.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Text("\(item.resultValue) \(item.unit)")
-                        .appTypography(AppTypography.callout, color: item.status == .normal ? AppColors.textPrimary : AppColors.warning)
+                    Text(AppStrings.Medical.colResult)
+                        .appTypography(AppTypography.caption, color: AppColors.textSecondary)
                         .frame(width: 80, alignment: .trailing)
                     
-                    Text(item.referenceRange)
+                    Text(AppStrings.Medical.colRange)
                         .appTypography(AppTypography.caption, color: AppColors.textSecondary)
                         .frame(width: 85, alignment: .trailing)
                     
-                    statusBadge(for: item.status)
+                    Text(AppStrings.Medical.colStatus)
+                        .appTypography(AppTypography.caption, color: AppColors.textSecondary)
                         .frame(width: 65, alignment: .center)
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(index % 2 == 0 ? AppColors.cardBackground : AppColors.background)
+                .background(AppColors.glassSurface)
                 
-                if index < testItems.count - 1 {
-                    Divider()
+                Divider()
+                
+                // Lab Items Rows
+                ForEach(Array(testItems.enumerated()), id: \.element.id) { index, item in
+                    HStack {
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                            Text(item.testName)
+                                .appTypography(AppTypography.subheadline, color: AppColors.textPrimary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text("\(item.resultValue) \(item.unit)")
+                            .appTypography(AppTypography.callout, color: item.status == .normal ? AppColors.textPrimary : AppColors.warning)
+                            .frame(width: 80, alignment: .trailing)
+                        
+                        Text(item.referenceRange)
+                            .appTypography(AppTypography.caption, color: AppColors.textSecondary)
+                            .frame(width: 85, alignment: .trailing)
+                        
+                        statusBadge(for: item.status)
+                            .frame(width: 65, alignment: .center)
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(index % 2 == 0 ? AppColors.cardBackground : AppColors.background)
+                    
+                    if index < testItems.count - 1 {
+                        Divider()
+                    }
                 }
             }
         }

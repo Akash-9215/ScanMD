@@ -22,57 +22,80 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         
         let name = regexMatch(pattern: #"Patient\s*Name\s*:?\s*([A-Za-z\s]+?)(?=\s+Patient\s*ID|\s+Age|\s+Date|\n|$)"#, in: text) ?? "Patient"
         let ageGender = regexMatch(pattern: #"Age\s*/?\s*Gender\s*:?\s*([^\n]+?)(?=\s+Doctor|\s+Date|\n|$)"#, in: text) ?? ""
-        let doctor = regexMatch(pattern: #"(?:Authorized\s*/?\s*Reporting\s*Doctor|Doctor|Physician)\s*:?\s*([A-Za-z\s\.\,]+?)(?=\s+Date|\s+Specimen|\n|$)"#, in: text) ?? "Attending Physician"
-        let date = regexMatch(pattern: #"Date\s*:?\s*([0-9]{1,2}[-/\s][A-Za-z0-9]{3,9}[-/\s][0-9]{2,4})"#, in: text) ?? Date().formatted(date: .abbreviated, time: .omitted)
+        
+        var doctor = regexMatch(pattern: #"(?:Doctor|Physician)\s*:?\s*(Dr\.[^\n]+?)(?=\s+Specimen|\s+Patient|\s+Date|\n|$)"#, in: text)
+        if doctor == nil || doctor == "Signature" {
+            doctor = regexMatch(pattern: #"(?:Authorized\s*/?\s*Reporting\s*Doctor)\s*:?\s*(Dr\.[^\n]+?)(?=\n|$)"#, in: text)
+        }
+        let doctorName = doctor ?? "Attending Physician"
+        
+        let date = regexMatch(pattern: #"Date\s*:?\s*([0-9]{1,2}[-/\s][A-Za-z0-9]{3,9}[-/\s][0-9]{2,4}(?:\s*,\s*[0-9]{1,2}:[0-9]{2}\s*(?:AM|PM)?)?)"#, in: text) ?? Date().formatted(date: .abbreviated, time: .omitted)
         
         var hospital = "Diagnostic Laboratory"
-        for (idx, line) in lines.prefix(5).enumerated() {
-            if idx > 0 && !line.lowercased().contains("synthetic") && !line.lowercased().contains("page") {
-                hospital = line
-                break
+        for line in lines.prefix(5) {
+            let lower = line.lowercased()
+            if lower.contains("centre") || lower.contains("center") || lower.contains("diagnostics") || lower.contains("lab") || lower.contains("hospital") {
+                if !lower.contains("synthetic") {
+                    hospital = line
+                    break
+                }
             }
         }
         
-        return (name, ageGender, hospital, doctor, date)
+        return (name, ageGender, hospital, doctorName, date)
     }
     
     func extractTestItems(from text: String) -> [MedicalTestItem] {
         var items: [MedicalTestItem] = []
-        let lines = text.components(separatedBy: .newlines)
+        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         
-        let units = #"(?:µIU/mL|uIU/mL|mIU/L|pg/mL|ng/dL|g/dL|mg/dL|mmol/L|/cumm|10\^3/uL|10\^6/uL|%|U/L|IU/L|mEq/L)"#
-        let pattern = #"^([A-Za-z0-9\s\(\)\-]+?)\s+([0-9\.,]+)\s+("# + units + #")\s+([0-9\.,]+\s*[\–\-–]\s*[0-9\.,]+\s*"# + units + #"?)\s+(\[?[A-Za-z]+\]?)"#
+        let units = #"(?:µIU/mL|uIU/mL|mIU/L|pg/mL|ng/dL|g/dL|mg/dL|mmol/L|/cumm|10\^3/uL|10\^6/uL|%|U/L|IU/L|mEq/L|bpm|ms|°|deg|mm/s|mm/mV)"#
+        let pattern = #"^([A-Za-z0-9\s\(\)\-\+]+?)\s+([\+\-]?[0-9\.,]+)\s*("# + units + #"?)\s+(.+?)\s+(\[?[A-Za-z\-—]+\]?)$"#
         
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return [] }
         
+        var inTableSection = false
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            let nsRange = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
-            if let match = regex.firstMatch(in: trimmed, options: [], range: nsRange) {
-                let testName = substring(of: trimmed, matchRange: match.range(at: 1))
-                let resultVal = substring(of: trimmed, matchRange: match.range(at: 2))
-                let unit = substring(of: trimmed, matchRange: match.range(at: 3))
-                let refRange = substring(of: trimmed, matchRange: match.range(at: 4))
-                let flagStr = substring(of: trimmed, matchRange: match.range(at: 5)).uppercased()
-                
-                let status: MedicalTestStatus
-                if flagStr.contains("HIGH") {
-                    status = .abnormalHigh
-                } else if flagStr.contains("LOW") {
-                    status = .abnormalLow
-                } else if flagStr.contains("CRITICAL") {
-                    status = .critical
-                } else {
-                    status = .normal
+            let lower = line.lowercased()
+            if lower.contains("measurements") || lower.contains("thyroid panel") || lower.contains("test result") || lower.contains("parameter result") || lower.contains("reference / expected") {
+                inTableSection = true
+                continue
+            }
+            if lower.contains("impression") || lower.contains("assessment") || lower.contains("clinical comment") || lower.contains("authorized") || lower.contains("disclaimer") {
+                inTableSection = false
+                continue
+            }
+            
+            let nsRange = NSRange(line.startIndex..<line.endIndex, in: line)
+            if inTableSection || regex.firstMatch(in: line, options: [], range: nsRange) != nil {
+                if let match = regex.firstMatch(in: line, options: [], range: nsRange) {
+                    let testName = substring(of: line, matchRange: match.range(at: 1))
+                    let resultVal = substring(of: line, matchRange: match.range(at: 2))
+                    let unit = substring(of: line, matchRange: match.range(at: 3))
+                    let refRange = substring(of: line, matchRange: match.range(at: 4))
+                    let flagStr = substring(of: line, matchRange: match.range(at: 5)).uppercased()
+                    
+                    let status: MedicalTestStatus
+                    if flagStr.contains("HIGH") {
+                        status = .abnormalHigh
+                    } else if flagStr.contains("LOW") {
+                        status = .abnormalLow
+                    } else if flagStr.contains("BORDERLINE") {
+                        status = .abnormalHigh
+                    } else if flagStr.contains("CRITICAL") {
+                        status = .critical
+                    } else {
+                        status = .normal
+                    }
+                    
+                    items.append(MedicalTestItem(
+                        testName: testName,
+                        resultValue: resultVal,
+                        unit: unit,
+                        referenceRange: refRange,
+                        status: status
+                    ))
                 }
-                
-                items.append(MedicalTestItem(
-                    testName: testName,
-                    resultValue: resultVal,
-                    unit: unit,
-                    referenceRange: refRange,
-                    status: status
-                ))
             }
         }
         return items
@@ -86,7 +109,7 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         if let impMatch = impMatch, !impMatch.isEmpty {
             impression = impMatch
         } else if flagged.isEmpty {
-            impression = "All evaluated parameters fall within normative physiological reference ranges."
+            impression = "All evaluated diagnostic parameters fall within normative reference ranges."
         } else {
             let flaggedSummary = flagged.map { "\($0.testName) (\($0.resultValue) \($0.unit))" }.joined(separator: ", ")
             impression = "Out-of-range parameters identified: \(flaggedSummary). Clinical correlation recommended."
@@ -97,9 +120,9 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
             advice.append(advMatch)
         } else if !flagged.isEmpty {
             advice.append("Schedule follow-up consultation with primary care physician.")
-            advice.append("Repeat testing within 4 weeks if clinically indicated.")
+            advice.append("Interpret findings alongside patient clinical symptoms and history.")
         } else {
-            advice.append("Maintain routine annual health screening.")
+            advice.append("Maintain routine health screening as clinically advised.")
         }
         
         return (impression, advice)

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import NaturalLanguage
 
 /// Protocol defining medical document classification and verification service.
 protocol MedicalDocumentClassifierProtocol {
@@ -16,12 +15,12 @@ protocol MedicalDocumentClassifierProtocol {
 /// Natural Language and heuristic verification engine classifying documents into medical lab reports vs general scans.
 final class MedicalDocumentClassifierService: MedicalDocumentClassifierProtocol {
     
-    private let medicalKeywords: Set<String> = [
-        "patient", "hospital", "laboratory", "clinic", "doctor", "physician", "pathologist",
-        "specimen", "hemoglobin", "wbc", "rbc", "platelet", "glucose", "cholesterol",
-        "triglyceride", "creatinine", "hba1c", "reference range", "ref range", "biological ref",
-        "units", "mg/dl", "g/dl", "mmol/l", "cells/cumm", "pathology", "hematology",
-        "biochemistry", "diagnostic", "prescription", "lab report", "test name"
+    private let strongClinicalTerms: Set<String> = [
+        "patient name", "doctor", "physician", "pathologist", "pathology",
+        "cardiology", "ecg measurements", "thyroid panel", "specimen",
+        "reference range", "ref range", "expected value", "lab report",
+        "test result", "diagnostic report", "hemoglobin", "wbc", "rbc",
+        "platelet", "tsh", "free t3", "free t4", "ventricular rate", "pr interval"
     ]
     
     /// Classifies OCR text and returns medical verification status, confidence score, and report type.
@@ -32,17 +31,23 @@ final class MedicalDocumentClassifierService: MedicalDocumentClassifierProtocol 
         }
         
         var matchCount = 0
-        for keyword in medicalKeywords {
-            if lowerText.contains(keyword) {
+        for term in strongClinicalTerms {
+            if lowerText.contains(term) {
                 matchCount += 1
             }
         }
         
-        let confidence = min(1.0, Double(matchCount) / 4.0)
-        let isMedical = matchCount >= 2 || lowerText.contains("medical") || lowerText.contains("scanmd")
+        // Strict verification: requires at least 2 strong clinical terms or patient+doctor combination
+        let hasHeaderCombo = lowerText.contains("patient") && (lowerText.contains("doctor") || lowerText.contains("physician"))
+        let isMedical = matchCount >= 2 || (matchCount >= 1 && hasHeaderCombo)
+        let confidence = min(1.0, Double(matchCount) / 3.0)
         
         var detectedType = "Clinical Diagnostic Report"
-        if lowerText.contains("blood") || lowerText.contains("hemoglobin") || lowerText.contains("wbc") {
+        if lowerText.contains("ecg") || lowerText.contains("cardiology") || lowerText.contains("ventricular rate") {
+            detectedType = "12-Lead ECG Cardiology Report"
+        } else if lowerText.contains("thyroid") || lowerText.contains("tsh") || lowerText.contains("free t3") {
+            detectedType = "Thyroid Function Test (TFT) Report"
+        } else if lowerText.contains("blood") || lowerText.contains("hemoglobin") || lowerText.contains("wbc") {
             detectedType = "Complete Blood Count (CBC) Report"
         } else if lowerText.contains("cholesterol") || lowerText.contains("lipid") || lowerText.contains("triglyceride") {
             detectedType = "Lipid Profile Diagnostic Report"
