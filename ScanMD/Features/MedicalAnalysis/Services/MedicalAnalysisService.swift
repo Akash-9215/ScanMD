@@ -16,13 +16,16 @@ protocol MedicalAnalysisServiceProtocol {
 final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
     private let classifier: MedicalDocumentClassifierProtocol
     private let parser: MedicalOCRParserProtocol
+    private let predictiveEngine: MedicalPredictiveDiagnosticEngineProtocol
     
     init(
         classifier: MedicalDocumentClassifierProtocol = MedicalDocumentClassifierService(),
-        parser: MedicalOCRParserProtocol = MedicalOCRParserService()
+        parser: MedicalOCRParserProtocol = MedicalOCRParserService(),
+        predictiveEngine: MedicalPredictiveDiagnosticEngineProtocol = MedicalPredictiveDiagnosticEngine()
     ) {
         self.classifier = classifier
         self.parser = parser
+        self.predictiveEngine = predictiveEngine
     }
     
     /// Analyzes document text to extract structured medical tables, patient details, and clinical diagnostic insights.
@@ -42,7 +45,15 @@ final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
         let flagged = testItems.filter { $0.status != .normal }
         let flaggedNames = flagged.map { "\($0.testName): \($0.resultValue) \($0.unit) (Ref: \($0.referenceRange))" }
         
-        let (impression, advice) = parser.extractImpressionAndAdvice(from: ocrText, flagged: flagged)
+        let (rawImpression, rawAdvice) = parser.extractImpressionAndAdvice(from: ocrText, flagged: flagged)
+        
+        // Use Predictive Diagnostic Engine to synthesize physician-grade clinical impressions
+        let (diagnosticSummary, clinicalImpression, recommendations) = predictiveEngine.evaluatePredictions(
+            testItems: testItems,
+            ocrImpression: rawImpression,
+            ocrAdvice: rawAdvice
+        )
+        
         let reportTitle = header.title != "Clinical Diagnostic Report" ? header.title : classification.reportType
         
         return MedicalReportModel(
@@ -55,10 +66,10 @@ final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
             doctorName: header.doctor,
             reportDate: header.date,
             testItems: testItems,
-            diagnosticSummary: impression,
+            diagnosticSummary: diagnosticSummary,
             flaggedAbnormalities: flaggedNames,
-            clinicalImpression: impression,
-            recommendedActions: advice
+            clinicalImpression: clinicalImpression,
+            recommendedActions: recommendations
         )
     }
 }

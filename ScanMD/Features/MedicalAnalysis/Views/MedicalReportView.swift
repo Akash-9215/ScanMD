@@ -136,6 +136,10 @@ struct MedicalReportView: View {
                     .appTypography(AppTypography.headline, color: AppColors.textPrimary)
             }
             Text(report.diagnosticSummary)
+                .appTypography(AppTypography.subheadline, color: AppColors.textPrimary)
+                .bold()
+            
+            Text(report.clinicalImpression)
                 .appTypography(AppTypography.body, color: AppColors.textSecondary)
             
             if !report.flaggedAbnormalities.isEmpty {

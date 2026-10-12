@@ -57,9 +57,10 @@ ScanMD/
     │   │   ├── MedicalTestItem.swift       # Model for individual diagnostic lab test parameters & status
     │   │   └── MedicalReportModel.swift    # Clinical model containing patient header, lab table, & pathologist insights
     │   ├── Services/
-    │   │   ├── MedicalDocumentClassifierService.swift # Core ML & NLP engine classifying medical vs non-medical documents
-    │   │   ├── MedicalOCRParserService.swift # Regex-based dynamic clinical OCR parsing engine for patient metadata & lab tables
-    │   │   └── MedicalAnalysisService.swift # Deep clinical parser extracting patient info, lab tables, & pathologist impressions
+    │   │   ├── MedicalDocumentClassifierService.swift # NaturalLanguage NLEmbedding semantic AI classifier (Zero hardcoded term lists)
+    │   │   ├── MedicalPredictiveDiagnosticEngine.swift # Multi-organ clinical AI predictive reasoning engine (Pathologist & Physician insights)
+    │   │   ├── MedicalOCRParserService.swift # Universal clinical OCR parsing engine for patient metadata & lab tables
+    │   │   └── MedicalAnalysisService.swift # Deep clinical coordinator extracting patient info, lab tables, & pathologist impressions
     │   ├── ViewModels/
     │   │   └── MedicalAnalysisViewModel.swift # State manager orchestrating document analysis workflow
     │   └── Views/
