@@ -81,6 +81,13 @@ ScanMD/
             ├── PDFKitViewRepresentable.swift # PDFKit viewer wrapper
             ├── PDFPreviewView.swift        # Full-screen PDF previewer with Save status, Medical Report, & OCR action
             └── OCRResultView.swift         # Recognized text viewer sheet with Medical Analysis shortcut & copy toast
+ScanMDTests/
+├── SpatialLayoutOCRTests.swift             # Spatial layout line reconstruction & column clustering tests
+├── MedicalOCRParserTests.swift             # Universal clinical OCR parsing & lab table extraction tests
+├── MedicalClassifierTests.swift            # NaturalLanguage semantic AI classifier unit tests
+├── PredictiveDiagnosticEngineTests.swift   # On-device predictive diagnostic & pathologist reasoning tests
+├── MedicalReportModelTests.swift           # Model structures and status mapping tests
+└── EndToEndScanIntegrationTests.swift      # End-to-end full document scanning & OCR pipeline integration tests
 ```
 
 ---
@@ -110,9 +117,10 @@ ScanMD/
 | **Home Dashboard** | `HomeView`, `HomeViewModel` | ✅ Complete | Redesigned artist-grade dashboard with hero card, stat counters, and recent scans |
 | **Document Scanning** | `DocumentScannerView`, `VNDocumentCameraRepresentable`, `DocumentScannerViewModel` | ✅ Complete | Full-screen camera scanner interface with VisionKit, temporary preview rendering & explicit user saving |
 | **PDF Generation** | `PDFGeneratorService`, `PDFKitViewRepresentable`, `PDFPreviewView` | ✅ Complete | Multi-page PDF renderer & full-screen previewer with saved status badge |
-| **OCR Text Recognition** | `OCRService`, `OCRResultView` | ✅ Complete | Vision & PDFKit accurate text extraction for live pages & saved PDF files |
+| **OCR Text Recognition** | `OCRService`, `OCRResultView` | ✅ Complete | Spatial layout-aware Vision & PDFKit accurate text extraction preserving multi-column tables |
 | **Medical Document Verification & Analysis** | `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Verifies medical document status, extracts structured patient metadata & test tables, flags out-of-range lab results, and generates pathologist diagnostic impressions and clinical recommendations |
 | **Document Library** | `DocumentStorageService`, `DocumentLibraryViewModel`, `DocumentLibraryView`, `DocumentRowCard` | ✅ Complete | Persistent storage with `documentStorageDidChange` observer updates & search |
+| **Unit & Integration Test Suite** | `ScanMDTests` (`SpatialLayoutOCRTests`, `MedicalOCRParserTests`, `MedicalClassifierTests`, `PredictiveDiagnosticEngineTests`, `MedicalReportModelTests`, `EndToEndScanIntegrationTests`) | ✅ Complete | Automated XCTest suite wired to Xcode Project Navigator and Test Navigator (13/13 passing) |
 
 ---
 

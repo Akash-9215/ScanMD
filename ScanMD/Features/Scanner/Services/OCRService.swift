@@ -34,11 +34,7 @@ final class OCRService: OCRServiceProtocol {
                     return
                 }
                 
-                let recognizedStrings = observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
-                }
-                
-                let fullText = recognizedStrings.joined(separator: "\n")
+                let fullText = Self.assembleSpatialText(from: observations)
                 continuation.resume(returning: fullText)
             }
             
@@ -52,6 +48,45 @@ final class OCRService: OCRServiceProtocol {
                 continuation.resume(throwing: error)
             }
         }
+    }
+    
+    /// Reconstructs natural document layout by clustering observations into horizontal lines (top-to-bottom, left-to-right).
+    static func assembleSpatialText(from observations: [VNRecognizedTextObservation]) -> String {
+        guard !observations.isEmpty else { return "" }
+        
+        struct LineCluster {
+            var y: CGFloat
+            var items: [(x: CGFloat, text: String)]
+        }
+        
+        var clusters: [LineCluster] = []
+        let yTolerance: CGFloat = 0.012
+        
+        for obs in observations {
+            guard let text = obs.topCandidates(1).first?.string else { continue }
+            let box = obs.boundingBox
+            let midY = box.midY
+            let minX = box.minX
+            
+            if let idx = clusters.firstIndex(where: { abs($0.y - midY) < yTolerance }) {
+                clusters[idx].items.append((x: minX, text: text))
+                let count = CGFloat(clusters[idx].items.count)
+                clusters[idx].y = (clusters[idx].y * (count - 1) + midY) / count
+            } else {
+                clusters.append(LineCluster(y: midY, items: [(x: minX, text: text)]))
+            }
+        }
+        
+        clusters.sort { $0.y > $1.y }
+        
+        var formattedLines: [String] = []
+        for cluster in clusters {
+            let sorted = cluster.items.sorted { $0.x < $1.x }
+            let lineText = sorted.map { $0.text }.joined(separator: " ")
+            formattedLines.append(lineText)
+        }
+        
+        return formattedLines.joined(separator: "\n")
     }
     
     /// Extracts text from a saved PDF file via PDFText extraction or rendering pages into Vision OCR.

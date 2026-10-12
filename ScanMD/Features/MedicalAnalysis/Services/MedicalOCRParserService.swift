@@ -56,12 +56,15 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         
         // Universal Pattern 1: Test Name | Result | Unit | Reference Range | Flag
-        let p1 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)\s+(\[?[A-Za-z\-—]+\]?)$"#
+        let p1 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
         // Universal Pattern 2: Test Name | Result | Reference Range | Flag (no explicit unit)
-        let p2 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s+(.+?)\s+(\[?[A-Za-z\-—]+\]?)$"#
+        let p2 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
+        // Universal Pattern 3: Test Name | Result | Unit | Reference Range (no flag)
+        let p3 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)$"#
         
         guard let r1 = try? NSRegularExpression(pattern: p1, options: [.caseInsensitive]),
-              let r2 = try? NSRegularExpression(pattern: p2, options: [.caseInsensitive]) else { return [] }
+              let r2 = try? NSRegularExpression(pattern: p2, options: [.caseInsensitive]),
+              let r3 = try? NSRegularExpression(pattern: p3, options: [.caseInsensitive]) else { return [] }
         
         var inTable = false
         for line in lines {
@@ -81,15 +84,28 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
                     appendMatch(match, line: line, hasUnit: true, items: &items)
                 } else if let match = r2.firstMatch(in: line, options: [], range: nsRange) {
                     appendMatch(match, line: line, hasUnit: false, items: &items)
+                } else if let match = r3.firstMatch(in: line, options: [], range: nsRange) {
+                    appendNoFlagMatch(match, line: line, items: &items)
                 }
             }
         }
         return items
     }
     
+    private func appendNoFlagMatch(_ match: NSTextCheckingResult, line: String, items: inout [MedicalTestItem]) {
+        let tname = substring(of: line, matchRange: match.range(at: 1))
+        let lower = tname.lowercased()
+        if lower.contains("patient") || lower.contains("doctor") || lower.contains("authorized") || lower.contains("date") || lower.contains("age") || lower.contains("gender") || lower.contains("specimen") || lower.contains("test") { return }
+        let resultVal = substring(of: line, matchRange: match.range(at: 2))
+        let unit = substring(of: line, matchRange: match.range(at: 3))
+        let refRange = substring(of: line, matchRange: match.range(at: 4))
+        items.append(MedicalTestItem(testName: tname, resultValue: resultVal, unit: unit, referenceRange: refRange, status: .normal))
+    }
+    
     private func appendMatch(_ match: NSTextCheckingResult, line: String, hasUnit: Bool, items: inout [MedicalTestItem]) {
         let tname = substring(of: line, matchRange: match.range(at: 1))
-        if tname.lowercased().contains("patient") || tname.lowercased().contains("doctor") || tname.lowercased().contains("authorized") || tname.lowercased().contains("date") { return }
+        let lower = tname.lowercased()
+        if lower.contains("patient") || lower.contains("doctor") || lower.contains("authorized") || lower.contains("date") || lower.contains("age") || lower.contains("gender") || lower.contains("specimen") || lower.contains("test") { return }
         
         let resultVal = substring(of: line, matchRange: match.range(at: 2))
         let unit = hasUnit ? substring(of: line, matchRange: match.range(at: 3)) : ""
