@@ -98,3 +98,19 @@ Every AI agent and developer working on this project MUST strictly adhere to the
 - All AI agents and developers MUST maintain and continuously update `PROJECT_SUMMARY.md` in the root directory whenever files, features, architecture, models, services, or design system tokens are created, modified, or removed.
 - Read `PROJECT_SUMMARY.md` at the start of tasks to rapidly understand project architecture and state without performing repetitive full-codebase analysis.
 
+---
+
+## 12. Strict Git Workflow & Branching Strategy (Zero Direct Commits to Main)
+- **No Direct Commits or Pushes to `main`**:
+  - NEVER commit directly to `main` or push straight to `origin/main`.
+  - Always create and work on dedicated, descriptive feature or bugfix branches:
+    - Features: `feature/<feature-name>` (e.g., `feature/ai-medical-classifier`)
+    - Fixes: `fix/<bug-description>` (e.g., `fix/camera-preview-transition`)
+- **Do Not Push Everything Automatically**:
+  - DO NOT automatically push every commit or file to remote without user consent or explicit instruction.
+  - Always build and verify changes locally first with `xcodebuild`.
+  - Push only to the designated feature/fix branch when instructed.
+- **Clean Git Hygiene**:
+  - Write clear, conventional commit messages.
+  - Keep commits atomic and focused on single responsibilities.
+

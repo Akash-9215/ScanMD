@@ -123,3 +123,4 @@ ScanMD/
 - [x] Brief 1–2 line docstring header on all types/components.
 - [x] `#Preview` block present in all SwiftUI Views.
 - [x] Keep `PROJECT_SUMMARY.md` updated after every major file/feature change.
+- [x] Strict Git Workflow & Branching Strategy: No direct commits/pushes to `main`; use `feature/` or `fix/` branches, no auto-pushing.
