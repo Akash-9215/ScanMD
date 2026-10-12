@@ -50,24 +50,18 @@ struct VNDocumentCameraRepresentable: UIViewControllerRepresentable {
             for i in 0..<scan.pageCount {
                 images.append(scan.imageOfPage(at: i))
             }
-            controller.dismiss(animated: true) {
-                self.onFinish(images)
-            }
+            onFinish(images)
         }
         
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-            controller.dismiss(animated: true) {
-                self.onCancel()
-            }
+            onCancel()
         }
         
         func documentCameraViewController(
             _ controller: VNDocumentCameraViewController,
             didFailWithError error: Error
         ) {
-            controller.dismiss(animated: true) {
-                self.onError(error)
-            }
+            onError(error)
         }
     }
 }

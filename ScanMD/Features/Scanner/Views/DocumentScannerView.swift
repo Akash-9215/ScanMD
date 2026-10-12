@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Clean full-screen document scanner view with camera representable and controls.
+/// Clean full-screen document scanner view with camera representable, interactive viewfinder, and preview integration.
 struct DocumentScannerView: View {
     @StateObject private var viewModel = DocumentScannerViewModel()
     @Environment(\.dismiss) private var dismiss
@@ -17,7 +17,17 @@ struct DocumentScannerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            if viewModel.isCameraSupported {
+            if let doc = viewModel.generatedDocument {
+                PDFPreviewView(document: doc, onDone: { dismiss() })
+            } else if viewModel.isGeneratingPDF {
+                VStack(spacing: AppSpacing.md) {
+                    ProgressView()
+                        .tint(AppColors.primaryAccent)
+                        .scaleEffect(1.3)
+                    Text(AppStrings.Scanner.processingDocument)
+                        .appTypography(AppTypography.headline, color: AppColors.textInverse)
+                }
+            } else if viewModel.isCameraSupported {
                 VNDocumentCameraRepresentable(
                     onFinish: viewModel.handleCapturedImages,
                     onCancel: { dismiss() },
@@ -27,7 +37,7 @@ struct DocumentScannerView: View {
                 )
                 .ignoresSafeArea()
             } else {
-                // Simulator Full-Screen Interactive Viewfinder UI
+                // Simulator Interactive Viewfinder UI
                 VStack(spacing: AppSpacing.zero) {
                     // Top Bar
                     HStack {
@@ -99,22 +109,13 @@ struct DocumentScannerView: View {
                             // Done PDF Render Button
                             if !viewModel.pages.isEmpty {
                                 Button(action: viewModel.generatePDFDocument) {
-                                    if viewModel.isGeneratingPDF {
-                                        ProgressView()
-                                            .tint(AppColors.textInverse)
-                                            .frame(width: 44, height: 44)
-                                            .background(AppColors.success)
-                                            .clipShape(Circle())
-                                    } else {
-                                        Image(systemName: AppIcons.checkmark)
-                                            .font(.system(size: AppSize.iconMd))
-                                            .foregroundStyle(AppColors.textInverse)
-                                            .frame(width: 44, height: 44)
-                                            .background(AppColors.success)
-                                            .clipShape(Circle())
-                                    }
+                                    Image(systemName: AppIcons.checkmark)
+                                        .font(.system(size: AppSize.iconMd))
+                                        .foregroundStyle(AppColors.textInverse)
+                                        .frame(width: 44, height: 44)
+                                        .background(AppColors.success)
+                                        .clipShape(Circle())
                                 }
-                                .disabled(viewModel.isGeneratingPDF)
                             } else {
                                 Color.clear.frame(width: 44, height: 44)
                             }
@@ -124,9 +125,6 @@ struct DocumentScannerView: View {
                     .padding(.bottom, AppSpacing.xl)
                 }
             }
-        }
-        .fullScreenCover(item: $viewModel.generatedDocument) { doc in
-            PDFPreviewView(document: doc, onDone: { dismiss() })
         }
     }
 }
