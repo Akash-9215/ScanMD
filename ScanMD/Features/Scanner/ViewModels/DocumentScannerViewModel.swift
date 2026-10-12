@@ -28,8 +28,9 @@ final class DocumentScannerViewModel: ObservableObject {
         VNDocumentCameraViewController.isSupported
     }
     
-    /// Processes newly captured images from camera scanner into scanned page models.
+    /// Processes newly captured images from camera scanner into scanned page models and triggers PDF creation.
     func handleCapturedImages(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
         let newPages = images.enumerated().map { index, image in
             ScannedPageModel(image: image, pageIndex: pages.count + index + 1)
         }
@@ -37,15 +38,16 @@ final class DocumentScannerViewModel: ObservableObject {
         generatePDFDocument()
     }
     
-    /// Simulates document capture on environments without physical camera support (Simulator).
+    /// Simulates document capture on environments without physical camera support (Simulator) by adding a page.
     func generateDemoScan() {
         let sampleImage = createSampleScannedPageImage()
-        handleCapturedImages([sampleImage])
+        let newPage = ScannedPageModel(image: sampleImage, pageIndex: pages.count + 1)
+        self.pages.append(newPage)
     }
     
     /// Converts current pages into a temporary PDF document for preview before user saving.
     func generatePDFDocument() {
-        guard !pages.isEmpty else { return }
+        guard !pages.isEmpty, !isGeneratingPDF else { return }
         isGeneratingPDF = true
         
         Task {

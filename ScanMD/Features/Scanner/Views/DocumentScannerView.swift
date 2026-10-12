@@ -99,13 +99,22 @@ struct DocumentScannerView: View {
                             // Done PDF Render Button
                             if !viewModel.pages.isEmpty {
                                 Button(action: viewModel.generatePDFDocument) {
-                                    Image(systemName: AppIcons.checkmark)
-                                        .font(.system(size: AppSize.iconMd))
-                                        .foregroundStyle(AppColors.textInverse)
-                                        .padding(AppSpacing.md)
-                                        .background(AppColors.success)
-                                        .clipShape(Circle())
+                                    if viewModel.isGeneratingPDF {
+                                        ProgressView()
+                                            .tint(AppColors.textInverse)
+                                            .frame(width: 44, height: 44)
+                                            .background(AppColors.success)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Image(systemName: AppIcons.checkmark)
+                                            .font(.system(size: AppSize.iconMd))
+                                            .foregroundStyle(AppColors.textInverse)
+                                            .frame(width: 44, height: 44)
+                                            .background(AppColors.success)
+                                            .clipShape(Circle())
+                                    }
                                 }
+                                .disabled(viewModel.isGeneratingPDF)
                             } else {
                                 Color.clear.frame(width: 44, height: 44)
                             }
@@ -116,10 +125,8 @@ struct DocumentScannerView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $viewModel.showPDFPreview) {
-            if let doc = viewModel.generatedDocument {
-                PDFPreviewView(document: doc, onDone: { dismiss() })
-            }
+        .fullScreenCover(item: $viewModel.generatedDocument) { doc in
+            PDFPreviewView(document: doc, onDone: { dismiss() })
         }
     }
 }

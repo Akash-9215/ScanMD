@@ -10,7 +10,6 @@ import VisionKit
 
 /// UIViewControllerRepresentable wrapper around VisionKit's VNDocumentCameraViewController.
 struct VNDocumentCameraRepresentable: UIViewControllerRepresentable {
-    @Environment(\.dismiss) private var dismiss
     let onFinish: ([UIImage]) -> Void
     let onCancel: () -> Void
     let onError: (Error) -> Void
@@ -24,7 +23,7 @@ struct VNDocumentCameraRepresentable: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(onFinish: onFinish, onCancel: onCancel, onError: onError, dismiss: dismiss)
+        Coordinator(onFinish: onFinish, onCancel: onCancel, onError: onError)
     }
     
     /// Coordinator managing VisionKit document scanner delegate callbacks.
@@ -32,18 +31,15 @@ struct VNDocumentCameraRepresentable: UIViewControllerRepresentable {
         let onFinish: ([UIImage]) -> Void
         let onCancel: () -> Void
         let onError: (Error) -> Void
-        let dismiss: DismissAction
         
         init(
             onFinish: @escaping ([UIImage]) -> Void,
             onCancel: @escaping () -> Void,
-            onError: @escaping (Error) -> Void,
-            dismiss: DismissAction
+            onError: @escaping (Error) -> Void
         ) {
             self.onFinish = onFinish
             self.onCancel = onCancel
             self.onError = onError
-            self.dismiss = dismiss
         }
         
         func documentCameraViewController(
@@ -54,20 +50,24 @@ struct VNDocumentCameraRepresentable: UIViewControllerRepresentable {
             for i in 0..<scan.pageCount {
                 images.append(scan.imageOfPage(at: i))
             }
-            onFinish(images)
+            controller.dismiss(animated: true) {
+                self.onFinish(images)
+            }
         }
         
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-            onCancel()
-            dismiss()
+            controller.dismiss(animated: true) {
+                self.onCancel()
+            }
         }
         
         func documentCameraViewController(
             _ controller: VNDocumentCameraViewController,
             didFailWithError error: Error
         ) {
-            onError(error)
-            dismiss()
+            controller.dismiss(animated: true) {
+                self.onError(error)
+            }
         }
     }
 }
