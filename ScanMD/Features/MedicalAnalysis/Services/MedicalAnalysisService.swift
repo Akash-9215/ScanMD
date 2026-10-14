@@ -19,7 +19,7 @@ final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
     private let predictiveEngine: MedicalPredictiveDiagnosticEngineProtocol
     
     init(
-        classifier: MedicalDocumentClassifierProtocol = MedicalDocumentClassifierService(),
+        classifier: MedicalDocumentClassifierProtocol = CoreMLMedicalClassifierService(),
         parser: MedicalOCRParserProtocol = MedicalOCRParserService(),
         predictiveEngine: MedicalPredictiveDiagnosticEngineProtocol = MedicalPredictiveDiagnosticEngine()
     ) {

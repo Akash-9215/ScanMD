@@ -54,11 +54,14 @@ ScanMD/
     │       └── DocumentLibraryView.swift   # Saved PDF documents library sheet with search
     ├── MedicalAnalysis/
     │   ├── Models/
+    │   │   ├── MedicalClassifierModel.mlpackage # Apple Core ML neural network package compiled from PyTorch
     │   │   ├── MedicalTestItem.swift       # Model for individual diagnostic lab test parameters & status
     │   │   └── MedicalReportModel.swift    # Clinical model containing patient header, lab table, & pathologist insights
     │   ├── Services/
-    │   │   ├── MedicalDocumentClassifierService.swift # NaturalLanguage NLEmbedding semantic AI classifier (Zero hardcoded term lists)
-    │   │   ├── MedicalPredictiveDiagnosticEngine.swift # Multi-organ clinical AI predictive reasoning engine (Pathologist & Physician insights)
+    │   │   ├── MedicalFeatureExtractor.swift # 20-dimensional normalized structural/clinical feature extractor
+    │   │   ├── CoreMLMedicalClassifierService.swift # Apple Neural Engine/GPU accelerated Core ML classifier
+    │   │   ├── MedicalDocumentClassifierService.swift # NaturalLanguage NLEmbedding semantic AI classifier fallback
+    │   │   ├── MedicalPredictiveDiagnosticEngine.swift # Multi-organ clinical AI predictive reasoning engine
     │   │   ├── MedicalOCRParserService.swift # Universal clinical OCR parsing engine for patient metadata & lab tables
     │   │   └── MedicalAnalysisService.swift # Deep clinical coordinator extracting patient info, lab tables, & pathologist impressions
     │   ├── ViewModels/
@@ -81,7 +84,13 @@ ScanMD/
             ├── PDFKitViewRepresentable.swift # PDFKit viewer wrapper
             ├── PDFPreviewView.swift        # Full-screen PDF previewer with Save status, Medical Report, & OCR action
             └── OCRResultView.swift         # Recognized text viewer sheet with Medical Analysis shortcut & copy toast
+ml/
+├── model_def.py                            # PyTorch MedicalClassifierNet architecture & 20-dim feature definitions
+├── train_medical_classifier.py             # Model training loop & coremltools export pipeline (.mlpackage)
+├── requirements.txt                        # Python ML dependencies (torch, coremltools, numpy)
+└── README.md                               # ML architecture, training guide & dataset documentation
 ScanMDTests/
+├── CoreMLMedicalClassifierTests.swift       # On-device Core ML neural classifier unit tests (5 test cases)
 ├── SpatialLayoutOCRTests.swift             # Spatial layout line reconstruction & column clustering tests
 ├── MedicalOCRParserTests.swift             # Universal clinical OCR parsing & lab table extraction tests
 ├── MedicalClassifierTests.swift            # NaturalLanguage semantic AI classifier unit tests
@@ -118,9 +127,9 @@ ScanMDTests/
 | **Document Scanning** | `DocumentScannerView`, `VNDocumentCameraRepresentable`, `DocumentScannerViewModel` | ✅ Complete | Full-screen camera scanner interface with VisionKit, temporary preview rendering & explicit user saving |
 | **PDF Generation** | `PDFGeneratorService`, `PDFKitViewRepresentable`, `PDFPreviewView` | ✅ Complete | Multi-page PDF renderer & full-screen previewer with saved status badge |
 | **OCR Text Recognition** | `OCRService`, `OCRResultView` | ✅ Complete | Spatial layout-aware Vision & PDFKit accurate text extraction preserving multi-column tables |
-| **Medical Document Verification & Analysis** | `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Verifies medical document status, extracts structured patient metadata & test tables, flags out-of-range lab results, and generates pathologist diagnostic impressions and clinical recommendations |
+| **Medical Document Verification & Analysis** | `MedicalClassifierModel`, `CoreMLMedicalClassifierService`, `MedicalFeatureExtractor`, `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Hardware-accelerated Apple Core ML neural document classifier (PyTorch trained, ANE/GPU accelerated) with NaturalLanguage fallback, patient metadata & test table extraction, and pathologist reasoning |
 | **Document Library** | `DocumentStorageService`, `DocumentLibraryViewModel`, `DocumentLibraryView`, `DocumentRowCard` | ✅ Complete | Persistent storage with `documentStorageDidChange` observer updates & search |
-| **Unit & Integration Test Suite** | `ScanMDTests` (`SpatialLayoutOCRTests`, `MedicalOCRParserTests`, `MedicalClassifierTests`, `PredictiveDiagnosticEngineTests`, `MedicalReportModelTests`, `EndToEndScanIntegrationTests`) | ✅ Complete | Automated XCTest suite wired to Xcode Project Navigator and Test Navigator (13/13 passing) |
+| **Unit & Integration Test Suite** | `ScanMDTests` (`CoreMLMedicalClassifierTests`, `SpatialLayoutOCRTests`, `MedicalOCRParserTests`, `MedicalClassifierTests`, `PredictiveDiagnosticEngineTests`, `MedicalReportModelTests`, `EndToEndScanIntegrationTests`) | ✅ Complete | Automated XCTest suite wired to Xcode Project Navigator and Test Navigator (18/18 passing) |
 
 ---
 
@@ -132,3 +141,4 @@ ScanMDTests/
 - [x] `#Preview` block present in all SwiftUI Views.
 - [x] Keep `PROJECT_SUMMARY.md` updated after every major file/feature change.
 - [x] Strict Git Workflow & Branching Strategy: No direct commits/pushes to `main`; use `feature/` or `fix/` branches, no auto-pushing.
+

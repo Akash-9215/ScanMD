@@ -26,3 +26,9 @@ xcuserdata/
 
 # User Data
 *.userstate
+
+# Python & ML
+.venv/
+__pycache__/
+*.pyc
+*.pyo
