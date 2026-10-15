@@ -75,9 +75,13 @@ final class MedicalDocumentClassifierService: MedicalDocumentClassifierProtocol 
         var detectedType = isMedical ? "Clinical Diagnostic Report" : "Non-Medical Document"
         if isMedical {
             let lines = ocrText.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+            let invalidWords = ["TEST NAME", "TEST TYPE", "TEST RESULT", "PARAMETER", "INVESTIGATION", "COUNT", "RESULT", "UNITS", "FLAG"]
             for line in lines.prefix(7) {
-                let upper = line.uppercased()
-                if (upper.contains("PATHOLOGY") || upper.contains("CARDIOLOGY") || upper.contains("REPORT") || upper.contains("PROFILE") || upper.contains("TEST") || upper.contains("COUNT"))
+                let upper = line.uppercased().trimmingCharacters(in: .whitespaces)
+                if invalidWords.contains(where: { upper == $0 || upper.hasPrefix("\($0) ") || upper.hasSuffix(" \($0)") || upper.hasSuffix(" COUNT") }) {
+                    continue
+                }
+                if (upper.contains("PATHOLOGY") || upper.contains("CARDIOLOGY") || upper.contains("PROFILE") || upper.contains("PANEL") || (upper.contains("REPORT") && !upper.contains("PATIENT REPORT")) || upper.contains("COMPLETE BLOOD") || upper.contains("FUNCTION TEST"))
                     && !upper.contains("SYNTHETIC") && !upper.contains("DEPARTMENT") && !upper.contains("PAGE") && !upper.contains("HOSPITAL") && !upper.contains("LABORATORY") && !upper.contains("CENTRE") {
                     detectedType = line.replacingOccurrences(of: "PATHOLOGY — ", with: "").replacingOccurrences(of: "CARDIOLOGY — ", with: "")
                     break

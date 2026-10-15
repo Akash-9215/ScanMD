@@ -21,7 +21,9 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         "sex", "specimen", "hospital", "clinic", "laboratory", "address", "phone",
         "tel", "fax", "email", "id", "mrn", "uhid", "visit", "code", "branch",
         "contract", "referred", "client", "registered", "collected", "reported",
-        "received", "page", "department", "sample", "time", "year", "years", "name"
+        "received", "page", "department", "sample", "time", "year", "years", "name",
+        "test type", "test name", "test description", "investigation", "parameter",
+        "parameters", "result", "results", "reference", "interval", "units", "status"
     ]
     
     func extractPatientHeader(from text: String) -> (name: String, ageGender: String, hospital: String, doctor: String, date: String, title: String) {
@@ -45,9 +47,14 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         }
         
         var title = "Clinical Diagnostic Report"
-        for line in lines.prefix(6) {
-            let upper = line.uppercased()
-            if (upper.contains("PATHOLOGY") || upper.contains("CARDIOLOGY") || upper.contains("REPORT") || upper.contains("PROFILE") || upper.contains("TEST") || upper.contains("COUNT") || upper.contains("PANEL")) && !upper.contains("SYNTHETIC") && !upper.contains("DEPARTMENT") && !upper.contains("LABORATORY") && !upper.contains("HOSPITAL") && !upper.contains("CENTRE") {
+        let invalidWords = ["TEST NAME", "TEST TYPE", "TEST RESULT", "PARAMETER", "INVESTIGATION", "COUNT", "RESULT", "UNITS", "FLAG"]
+        for line in lines.prefix(7) {
+            let upper = line.uppercased().trimmingCharacters(in: .whitespaces)
+            if invalidWords.contains(where: { upper == $0 || upper.hasPrefix("\($0) ") || upper.hasSuffix(" \($0)") || upper.hasSuffix(" COUNT") }) {
+                continue
+            }
+            if (upper.contains("PATHOLOGY") || upper.contains("CARDIOLOGY") || upper.contains("PROFILE") || upper.contains("PANEL") || (upper.contains("REPORT") && !upper.contains("PATIENT REPORT")) || upper.contains("COMPLETE BLOOD") || upper.contains("FUNCTION TEST"))
+                && !upper.contains("SYNTHETIC") && !upper.contains("DEPARTMENT") && !upper.contains("LABORATORY") && !upper.contains("HOSPITAL") && !upper.contains("CENTRE") {
                 title = line.replacingOccurrences(of: "PATHOLOGY — ", with: "").replacingOccurrences(of: "CARDIOLOGY — ", with: "")
                 break
             }
@@ -81,11 +88,11 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
             let nsRange = NSRange(line.startIndex..<line.endIndex, in: line)
             if inTable || r1.firstMatch(in: line, options: [], range: nsRange) != nil {
                 if let match = r1.firstMatch(in: line, options: [], range: nsRange) {
-                    appendMatch(match, line: line, hasUnit: true, items: &items)
+                    appendItem(match, line: line, hasUnit: true, hasFlag: true, items: &items)
                 } else if let match = r2.firstMatch(in: line, options: [], range: nsRange) {
-                    appendMatch(match, line: line, hasUnit: false, items: &items)
+                    appendItem(match, line: line, hasUnit: false, hasFlag: true, items: &items)
                 } else if let match = r3.firstMatch(in: line, options: [], range: nsRange) {
-                    appendNoFlagMatch(match, line: line, items: &items)
+                    appendItem(match, line: line, hasUnit: true, hasFlag: false, items: &items)
                 }
             }
         }
@@ -94,8 +101,17 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
     
     private func cleanName(_ raw: String) -> String? {
         var cleaned = raw.trimmingCharacters(in: CharacterSet(charactersIn: " :-—|•\t"))
+        for prefix in ["test name:", "test name", "test type:", "test type", "test:", "parameter:", "investigation:"] {
+            if cleaned.lowercased().hasPrefix(prefix) {
+                cleaned = String(cleaned.dropFirst(prefix.count)).trimmingCharacters(in: CharacterSet(charactersIn: " :-—|•\t"))
+                break
+            }
+        }
         let lower = cleaned.lowercased()
         guard cleaned.count >= 2, cleaned.rangeOfCharacter(from: .letters) != nil else { return nil }
+        if ["test", "tests", "test name", "test type", "investigation", "parameter", "result", "units", "status"].contains(lower) {
+            return nil
+        }
         if blacklist.contains(where: { lower == $0 || lower.hasPrefix("\($0) ") || lower.hasPrefix("\($0):") || lower.contains("/\($0)") }) {
             return nil
         }
@@ -110,27 +126,18 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
             .trimmingCharacters(in: .whitespaces)
     }
     
-    private func appendNoFlagMatch(_ match: NSTextCheckingResult, line: String, items: inout [MedicalTestItem]) {
-        guard let tname = cleanName(substring(of: line, matchRange: match.range(at: 1))) else { return }
-        let resultVal = cleanVal(substring(of: line, matchRange: match.range(at: 2)))
-        let unit = substring(of: line, matchRange: match.range(at: 3))
-        let refRange = substring(of: line, matchRange: match.range(at: 4))
-        items.append(MedicalTestItem(testName: tname, resultValue: resultVal, unit: unit, referenceRange: refRange, status: .normal))
-    }
-    
-    private func appendMatch(_ match: NSTextCheckingResult, line: String, hasUnit: Bool, items: inout [MedicalTestItem]) {
+    private func appendItem(_ match: NSTextCheckingResult, line: String, hasUnit: Bool, hasFlag: Bool, items: inout [MedicalTestItem]) {
         guard let tname = cleanName(substring(of: line, matchRange: match.range(at: 1))) else { return }
         let resultVal = cleanVal(substring(of: line, matchRange: match.range(at: 2)))
         let unit = hasUnit ? substring(of: line, matchRange: match.range(at: 3)) : ""
         let refRange = substring(of: line, matchRange: match.range(at: hasUnit ? 4 : 3))
-        let flagStr = substring(of: line, matchRange: match.range(at: hasUnit ? 5 : 4)).uppercased()
-        
-        let status: MedicalTestStatus
-        if flagStr.contains("HIGH") || flagStr.contains("BORDERLINE") { status = .abnormalHigh }
-        else if flagStr.contains("LOW") { status = .abnormalLow }
-        else if flagStr.contains("CRITICAL") { status = .critical }
-        else { status = .normal }
-        
+        var status: MedicalTestStatus = .normal
+        if hasFlag {
+            let flag = substring(of: line, matchRange: match.range(at: hasUnit ? 5 : 4)).uppercased()
+            if flag.contains("HIGH") || flag.contains("BORDERLINE") { status = .abnormalHigh }
+            else if flag.contains("LOW") { status = .abnormalLow }
+            else if flag.contains("CRITICAL") { status = .critical }
+        }
         items.append(MedicalTestItem(testName: tname, resultValue: resultVal, unit: unit, referenceRange: refRange, status: status))
     }
     

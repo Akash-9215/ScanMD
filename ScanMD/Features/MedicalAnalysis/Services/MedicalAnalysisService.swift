@@ -54,7 +54,20 @@ final class MedicalAnalysisService: MedicalAnalysisServiceProtocol {
             ocrAdvice: rawAdvice
         )
         
-        let reportTitle = header.title != "Clinical Diagnostic Report" ? header.title : classification.reportType
+        let titleLower = header.title.lowercased()
+        let isMatchingTableTest = testItems.contains { item in
+            let itemLower = item.testName.lowercased()
+            return titleLower == itemLower || titleLower.contains(itemLower) || itemLower.contains(titleLower)
+        }
+        let isIndividualTest = isMatchingTableTest || [
+            "count", "hemoglobin", "haemoglobin", "cholesterol", "triglyceride", "glucose",
+            "creatinine", "urea", "bilirubin", "sgot", "sgpt", "alt", "ast", "alp", "calcium",
+            "potassium", "sodium", "tsh", "test name", "test type", "investigation", "parameter"
+        ].contains(where: { titleLower.contains($0) && !titleLower.contains("complete blood") })
+        
+        let reportTitle = (!isIndividualTest && header.title != "Clinical Diagnostic Report" && !header.title.isEmpty)
+            ? header.title
+            : classification.reportType
         
         return MedicalReportModel(
             isMedicalReport: true,

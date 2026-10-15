@@ -80,7 +80,7 @@ struct MedicalReportView: View {
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(report.isMedicalReport ? AppStrings.Medical.verified : AppStrings.Medical.unverified)
                     .appTypography(AppTypography.headline, color: AppColors.textPrimary)
-                Text(report.reportType)
+                Text("\(AppStrings.Medical.testType): \(report.reportType)")
                     .appTypography(AppTypography.caption, color: AppColors.textSecondary)
             }
             Spacer()

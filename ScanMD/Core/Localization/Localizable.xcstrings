@@ -181,7 +181,18 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diagnostic Test"
+            "value" : "Test Name"
+          }
+        }
+      }
+    },
+    "medical_test_type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Type"
           }
         }
       }
