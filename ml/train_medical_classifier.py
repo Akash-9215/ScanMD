@@ -1,9 +1,10 @@
 """
 train_medical_classifier.py
-Trains PyTorch medical document neural classifier and exports to Core ML (.mlpackage).
+Trains PyTorch medical document classifier on real clinical + synthetic data and exports to Core ML.
 """
 
 import os
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,100 +12,141 @@ from torch.utils.data import DataLoader, TensorDataset
 import coremltools as ct
 from model_def import CLASSES, extract_features, MedicalClassifierNet
 
-TRAINING_DATA = [
-    # Class 0: Non-Medical
-    ("Starbucks Coffee #1289\n1 Caramel Macchiato $5.75\n1 Blueberry Muffin $3.50\nSubtotal $9.25\nTax: $0.74\nTotal: $9.99\nVisa Ending 4012\nThank you!", 0),
-    ("Supermarket Grocery Mart\nMilk 1 Gal $3.99\nEggs 12ct $2.49\nBread Sliced $2.99\nItem Count: 3\nTotal: $9.47\nCash: $10.00\nChange: $0.53", 0),
-    ("import React, { useState } from 'react';\nexport default function App() {\n  const [count, setCount] = useState(0);\n  return <button onClick={() => setCount(count + 1)}>{count}</button>;\n}", 0),
-    ("BOARDING PASS\nPassenger: John Smith\nFlight: AA104 Gate: B22 Seat: 14B\nOrigin: JFK Destination: LAX\nDep: 08:30 AM Arr: 11:45 AM", 0),
-    ("Italian Bistro Menu\nSpaghetti Bolognese $16.00\nPenne all Arrabbiata $14.50\nTiramisu $8.00\nTable 4 Guests: 2 Server: Marco\nCheck Total: $38.50", 0),
-    ("INVOICE #9821\nClient: Acme Corp\nConsulting Hours: 40 hrs @ $150/hr\nSubtotal: $6000.00\nTax: 0%\nAmount Due: $6000.00\nPayment Terms: Net 30", 0),
-    ("def calculate_fibonacci(n):\n    if n <= 1:\n        return n\n    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)\nprint(calculate_fibonacci(10))", 0),
-    ("Shell Gas Station\nPump 04 Regular Unleaded\n12.450 Gal @ $3.499/Gal\nFuel Total: $43.56\nApproved Debit Card\nVisit Again!", 0),
-
-    # Class 1: Lipid Profile
-    ("METRO HEALTH PATHOLOGY\nPatient Name: Rajesh Patel Age: 52 Gender: Male\nRef By: Dr. Mehta\nPATHOLOGY — LIPID PROFILE\nTotal Cholesterol 245.0 mg/dL (Desirable: <200)\nTriglycerides 210.0 mg/dL (Normal: <150)\nHDL Cholesterol 38.0 mg/dL (Normal: >40)\nLDL Cholesterol 165.0 mg/dL (Optimal: <100)\nVLDL 42.0 mg/dL (Normal: 10-30)\nImpression: Hypercholesterolemia with elevated atherogenic risk.", 1),
-    ("CLINICAL BIOCHEMISTRY LAB\nPatient Name: Sunita Rao Age: 48 Gender: Female\nLIPID PANEL\nSerum Cholesterol: 185 mg/dL (125-200)\nTriglycerides: 130 mg/dL (<150)\nHDL: 54 mg/dL (>50)\nLDL: 105 mg/dL (<100)\nChol / HDL Ratio: 3.4\nSpecimen: Serum Collected: 08:00 AM\nPathologist Signature: Dr. Sen, MD", 1),
-    ("APEX DIAGNOSTICS\nLIPID PROFILE TEST REPORT\nTotal Cholesterol 278 mg/dL\nTriglycerides 280 mg/dL\nHDL Cholesterol 35 mg/dL\nLDL Cholesterol 187 mg/dL\nRisk Factor: High atherogenic index\nPathologist Advice: Lifestyle intervention and Statin therapy evaluation.", 1),
-    ("CENTRAL PATHOLOGY CLINIC\nPatient: David Miller\nSERUM LIPIDS\nCholesterol Total: 215 mg/dL (150-200)\nTriglyceride: 175 mg/dL (50-150)\nHDL: 42 mg/dL (40-60)\nLDL Direct: 138 mg/dL (0-100)\nSpecimen: Fasting Serum\nDoctor: Dr. K. Verma", 1),
-
-    # Class 2: Complete Blood Count
-    ("CITY HEALTH CARE LABORATORY\nDepartment of Hematology\nCOMPLETE BLOOD COUNT (CBC)\nPatient Name: John Doe Age: 35 Gender: Male\nHemoglobin 14.8 g/dL (13.0-17.0)\nRBC Count 4.90 mill/cumm (4.5-5.5)\nWBC Total Count 7200 cells/cumm (4000-11000)\nPlatelet Count 240000 /cumm (150000-450000)\nNeutrophils 62 % (40-75)\nLymphocytes 30 % (20-45)\nEosinophils 3 % (1-6)\nMonocytes 5 % (2-10)\nPCV Hematocrit 44 % (40-50)\nMCV 88 fl (80-100)\nSpecimen: EDTA Whole Blood", 2),
-    ("GLOBAL LABS & PATHOLOGY\nHEMOGRAM / COMPLETE BLOOD COUNT\nPatient Name: Priya Sharma Age: 29 Gender: Female\nHemoglobin: 9.2 g/dL (12.0-15.0)\nTotal Leucocyte Count: 12500 /cumm (4000-11000)\nPlatelets: 180000 /cumm (150000-410000)\nImpression: Microcytic hypochromic anemia with mild leukocytosis.", 2),
-    ("ST. JUDE HOSPITAL CLINICAL LAB\nHAEMATOLOGY REPORT (CBC)\nHb: 15.2 g/dL\nTotal WBC: 6500 cells/cumm\nRBC: 5.1 mill/cumm\nPlatelet Count: 280000 /cumm\nESR: 8 mm/hr\nSpecimen: Whole Blood EDTA\nConsultant Pathologist: Dr. R. Iyer, MD", 2),
-
-    # Class 3: Liver Function
-    ("ROYAL CLINICAL DIAGNOSTICS\nDepartment of Biochemistry\nLIVER FUNCTION TEST (LFT)\nPatient Name: Anita Roy Age: 42 Gender: Female\nBilirubin Total 0.9 mg/dL (0.2-1.2)\nBilirubin Direct 0.2 mg/dL (0.0-0.3)\nSGOT / AST 28 U/L (10-40)\nSGPT / ALT 32 U/L (7-56)\nAlkaline Phosphatase (ALP) 85 U/L (44-147)\nTotal Protein 7.2 g/dL (6.0-8.3)\nSerum Albumin 4.1 g/dL (3.5-5.0)\nSerum Globulin 3.1 g/dL (2.0-3.5)\nA/G Ratio: 1.32\nSpecimen: Fasting Serum", 3),
-    ("PREMIER PATHOLOGY SERVICES\nHEPATIC PROFILE / LFT REPORT\nTotal Bilirubin: 2.8 mg/dL (High)\nDirect Bilirubin: 1.4 mg/dL (High)\nAST (SGOT): 95 U/L (Elevated)\nALT (SGPT): 120 U/L (Elevated)\nALP: 210 U/L\nImpression: Hepatocellular injury pattern, clinical correlation advised.", 3),
-
-    # Class 4: Renal Function
-    ("MEDILIFE DIAGNOSTIC CENTRE\nKIDNEY FUNCTION TEST (KFT / RFT)\nPatient Name: Vikram Singhania Age: 61 Gender: Male\nBlood Urea 34 mg/dL (15-45)\nSerum Creatinine 1.05 mg/dL (0.7-1.3)\nBlood Urea Nitrogen (BUN) 16 mg/dL (7-20)\nSerum Uric Acid 5.8 mg/dL (3.5-7.2)\neGFR: 82 mL/min/1.73m2\nSodium: 139 mmol/L (135-145)\nPotassium: 4.2 mmol/L (3.5-5.1)\nSpecimen: Serum", 4),
-    ("ADVANCED RENAL LAB\nRENAL PROFILE REPORT\nSerum Creatinine: 2.4 mg/dL (0.6-1.2)\nBlood Urea: 68 mg/dL (10-50)\nBUN / Creatinine Ratio: 28.3\nImpression: Impaired glomerular filtration, Nephrology consult recommended.", 4),
-
-    # Class 5: General Medical / Prescription
-    ("CARE CLINIC & MULTISPECIALTY HOSPITAL\nPatient Name: Robert Taylor Age: 45 Date: 12-Oct-2026\nDr. Marcus Vance, MD Cardiology\nDiagnosis: Essential Hypertension\nRx Prescription:\n1. Tab. Telmisartan 40mg OD Morning after food\n2. Tab. Amlodipine 5mg OD Night\nAdvice: Restrict sodium intake, daily aerobic exercise, review BP in 2 weeks.\nDoctor Signature & Seal", 5),
-    ("CARDIAC CARE INSTITUTE\nELECTROCARDIOGRAM (ECG) REPORT\nPatient Name: Suresh Nair Age: 58\nHeart Rate: 72 bpm\nPR Interval: 160 ms\nQRS Duration: 88 ms\nQT / QTc: 390 / 410 ms\nImpression: Normal Sinus Rhythm, No ST-T segment elevation or acute ischemic changes.", 5)
+NON_MEDICAL_SAMPLES = [
+    "Starbucks Coffee #1289\n1 Caramel Macchiato $5.75\n1 Blueberry Muffin $3.50\nSubtotal $9.25\nTax: $0.74\nTotal: $9.99\nVisa Ending 4012\nThank you!",
+    "Supermarket Grocery Mart\nMilk 1 Gal $3.99\nEggs 12ct $2.49\nBread Sliced $2.99\nItem Count: 3\nTotal: $9.47\nCash: $10.00\nChange: $0.53",
+    "import React, { useState } from 'react';\nexport default function App() {\n  const [count, setCount] = useState(0);\n  return <button onClick={() => setCount(count + 1)}>{count}</button>;\n}",
+    "BOARDING PASS\nPassenger: John Smith\nFlight: AA104 Gate: B22 Seat: 14B\nOrigin: JFK Destination: LAX\nDep: 08:30 AM Arr: 11:45 AM",
+    "Italian Bistro Menu\nSpaghetti Bolognese $16.00\nPenne all Arrabbiata $14.50\nTiramisu $8.00\nTable 4 Guests: 2 Server: Marco\nCheck Total: $38.50",
+    "INVOICE #9821\nClient: Acme Corp\nConsulting Hours: 40 hrs @ $150/hr\nSubtotal: $6000.00\nTax: 0%\nAmount Due: $6000.00\nPayment Terms: Net 30",
+    "def calculate_fibonacci(n):\n    if n <= 1:\n        return n\n    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)\nprint(calculate_fibonacci(10))",
+    "Shell Gas Station\nPump 04 Regular Unleaded\n12.450 Gal @ $3.499/Gal\nFuel Total: $43.56\nApproved Debit Card\nVisit Again!",
+    "Target Store #0281\nShampoo 16oz $7.99\nConditioner 16oz $7.99\nToothpaste 2pk $5.49\nSubtotal $21.47\nTax $1.72\nTotal $23.19\nMastercard 8821",
+    "Home Depot Order Confirmation\nOrder #WD-99128\nItem: Cordless Drill 20V $89.00\nHardware Screws $6.50\nShipping: Free Standard\nTotal: $95.50\nThank you for shopping!",
+    "Uber Ride Receipt\nTrip Fare $18.20\nSurge $4.50\nTolls $2.75\nTip $4.00\nTotal Charged: $29.45 to Visa ending in 1948\nDriver: Alex 5 Stars",
+    "Amazon Logistics Shipment\nTracking: 1Z999AA101234\nPackage 1 of 1 Delivered\nDelivery address: 742 Evergreen Terrace\nPackage left at front door",
+    "git commit -m 'fix: resolve race condition in network thread'\nAuthor: dev@company.com\nBranch: main -> origin/main\n3 files changed, 45 insertions(+), 12 deletions(-)",
+    "McDonald's Restaurant #4412\n1 Big Mac Meal $8.99\n1 Large Fries $2.99\n1 Coca Cola $1.50\nSubtotal $13.48\nSales Tax: $1.08\nTotal: $14.56\nCash Tendered $20.00",
+    "Electric Utility Bill\nAccount: 489-102-11\nBilling Period: Sep 01 - Oct 01\nUsage: 640 kWh @ $0.14/kWh\nElectric Charges: $89.60\nTotal Amount Due: $89.60\nDue Date: Oct 25",
+    "public class NetworkManager {\n    private URLSession session;\n    public void fetchData(String url) {\n        System.out.println('Fetching: ' + url);\n    }\n}",
+    "Parking Ticket & Receipt\nLot C Garage Level 2\nEntry: 14:15 Exit: 18:30\nDuration: 4h 15m\nRate: $5/hr\nFee: $25.00\nPaid via Apple Pay",
+    "Best Buy Customer Receipt\nItem: USB-C Cable 2m $19.99\nItem: Wireless Mouse $29.99\nSubtotal: $49.98\nTax: $4.00\nTotal: $53.98\nReturn Policy: 15 Days",
+    "Coffee Bean & Tea Leaf\nOrder #812\nIced Vanilla Latte $5.25\nCroissant Butter $3.75\nTotal $9.00\nTip $1.50\nTotal Paid: $10.50\nTerminal: Register 01",
+    "SELECT users.id, users.email, orders.total FROM users JOIN orders ON users.id = orders.user_id WHERE orders.created_at >= '2026-01-01';"
 ]
 
+SYNTHETIC_LABELS = {
+    "ScanMD_Report_01.pdf": 1, # CBC
+    "ScanMD_Report_02.pdf": 2, # Lipid
+    "ScanMD_Report_03.pdf": 5, # Diabetology & Endocrine (TFT)
+    "ScanMD_Report_04.pdf": 3, # Liver
+    "ScanMD_Report_05.pdf": 4, # Renal
+    "ScanMD_Report_06.pdf": 7, # General Clinical (Spine)
+    "ScanMD_Report_07.pdf": 7, # General Clinical (Discharge)
+    "ScanMD_Report_08.pdf": 7, # General Clinical (ECG)
+    "ScanMD_Report_09.pdf": 7, # General Clinical (Chest X-Ray)
+    "ScanMD_Report_10.pdf": 6, # Urinalysis & Pathology
+    "ScanMD_Report_11.pdf": 5, # Diabetology & Endocrine (Vit D & B12)
+    "ScanMD_Report_12.pdf": 5  # Diabetology & Endocrine (HbA1c)
+}
+
+def classify_clinic_sample(text: str) -> int:
+    """Assigns ground truth category to real clinic reports from bygfmk4rx9 dataset."""
+    l = text.lower()
+    if any(k in l for k in ["lipid", "cholesterol", "triglyceride", "hdl", "ldl"]):
+        return 2 # Lipid Profile
+    if any(k in l for k in ["liver", "bilirubin", "sgot", "sgpt", "alt", "ast", "alp", "hepatic", "albumin"]):
+        return 3 # Liver Function
+    if any(k in l for k in ["creatinine", "urea", "bun", "uric acid", "kidney", "renal"]):
+        return 4 # Renal Function
+    if any(k in l for k in ["glucose", "sugar", "hba1c", "tsh", "thyroid", "t3", "t4", "insulin", "diabet"]):
+        return 5 # Diabetology & Endocrine
+    if any(k in l for k in ["urine", "pus cells", "epithelial", "urinalysis", "stool", "culture"]):
+        return 6 # Urinalysis & Pathology
+    if any(k in l for k in ["hemoglobin", "haemoglobin", "wbc", "platelet", "hematocrit", "haematocrit", "cbc", "blood picture", "esr"]):
+        return 1 # Complete Blood Count
+    return 7 # General Clinical
+
+def build_dataset():
+    texts, labels = [], []
+    for txt in NON_MEDICAL_SAMPLES:
+        texts.append(txt)
+        labels.append(0)
+
+    synth_path = os.path.join(os.path.dirname(__file__), "synthetic_reports.json")
+    if os.path.exists(synth_path):
+        with open(synth_path, "r") as f:
+            for item in json.load(f):
+                name = item.get("filename", "")
+                lbl = SYNTHETIC_LABELS.get(name, 7)
+                texts.append(item.get("text", ""))
+                labels.append(lbl)
+
+    clinic_path = os.path.join(os.path.dirname(__file__), "real_clinic_samples.json")
+    if os.path.exists(clinic_path):
+        with open(clinic_path, "r") as f:
+            for item in json.load(f):
+                txt = item.get("text", "")
+                lbl = classify_clinic_sample(txt)
+                texts.append(txt)
+                labels.append(lbl)
+
+    print(f"Total compiled dataset: {len(texts)} samples (Non-Medical: {labels.count(0)}, Medical: {len(labels) - labels.count(0)})")
+    return texts, labels
+
 def train_and_export():
-    print(f"Extracting features for {len(TRAINING_DATA)} samples...")
+    texts, labels = build_dataset()
     X_list, y_list = [], []
-    # Augment data with slight feature perturbations for generalization
-    for text, label in TRAINING_DATA:
+
+    for text, label in zip(texts, labels):
         feat = extract_features(text)
         X_list.append(feat)
         y_list.append(label)
-        for _ in range(5):
-            noise = np.random.normal(0, 0.02, size=feat.shape).astype(np.float32)
+        # Augment with subtle noise for robust generalization
+        for _ in range(4):
+            noise = np.random.normal(0, 0.015, size=feat.shape).astype(np.float32)
             X_list.append(np.clip(feat + noise, 0.0, 1.0))
             y_list.append(label)
 
     X = torch.tensor(np.array(X_list), dtype=torch.float32)
     y = torch.tensor(np.array(y_list), dtype=torch.long)
 
-    dataset = TensorDataset(X, y)
-    loader = DataLoader(dataset, batch_size=8, shuffle=True)
-
-    model = MedicalClassifierNet()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    loader = DataLoader(TensorDataset(X, y), batch_size=16, shuffle=True)
+    model = MedicalClassifierNet(input_dim=24, num_classes=len(CLASSES))
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.008)
     criterion = nn.CrossEntropyLoss()
 
-    print("Training PyTorch Medical Classifier Network...")
     model.train()
-    for epoch in range(120):
-        total_loss = 0.0
-        for batch_x, batch_y in loader:
+    for epoch in range(140):
+        for bx, by in loader:
             optimizer.zero_grad()
-            out = model(batch_x)
-            loss = criterion(out, batch_y)
+            out = model(bx)
+            loss = criterion(out, by)
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
 
     model.eval()
     with torch.no_grad():
         preds = model(X).argmax(dim=1)
         acc = (preds == y).float().mean().item()
-        print(f"Training completed! Model accuracy: {acc * 100:.2f}%")
+        print(f"PyTorch training completed! Dataset Accuracy: {acc * 100:.2f}%")
 
-    # Export to Core ML
-    example_input = torch.rand(1, 20)
+    example_input = torch.rand(1, 24)
     traced_model = torch.jit.trace(model, example_input)
-    classifier_config = ct.ClassifierConfig(class_labels=CLASSES)
+    cfg = ct.ClassifierConfig(class_labels=CLASSES)
 
     print("Converting to Apple Core ML (.mlpackage)...")
     mlmodel = ct.convert(
         traced_model,
-        inputs=[ct.TensorType(name="features", shape=(1, 20))],
-        classifier_config=classifier_config,
+        inputs=[ct.TensorType(name="features", shape=(1, 24))],
+        classifier_config=cfg,
         minimum_deployment_target=ct.target.iOS16
     )
 
     out_dir = os.path.join(os.path.dirname(__file__), "..", "ScanMD", "Features", "MedicalAnalysis", "Models")
-    os.makedirs(out_dir, exist_ok=True)
     pkg_path = os.path.join(out_dir, "MedicalClassifierModel.mlpackage")
     mlmodel.save(pkg_path)
-    print(f"Core ML package saved successfully to: {pkg_path}")
+    print(f"Saved optimized Core ML package to: {pkg_path}")
 
 if __name__ == "__main__":
     train_and_export()

@@ -16,13 +16,18 @@ protocol MedicalOCRParserProtocol {
 
 /// Service parsing raw OCR text into structured patient metadata, report titles, lab tables, and clinical impressions.
 final class MedicalOCRParserService: MedicalOCRParserProtocol {
+    private let blacklist = [
+        "patient", "doctor", "physician", "authorized", "date", "age", "gender",
+        "sex", "specimen", "hospital", "clinic", "laboratory", "address", "phone",
+        "tel", "fax", "email", "id", "mrn", "uhid", "visit", "code", "branch",
+        "contract", "referred", "client", "registered", "collected", "reported",
+        "received", "page", "department", "sample", "time", "year", "years", "name"
+    ]
     
     func extractPatientHeader(from text: String) -> (name: String, ageGender: String, hospital: String, doctor: String, date: String, title: String) {
         let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        
         let name = regexMatch(pattern: #"Patient\s*Name\s*:?\s*([A-Za-z\s]+?)(?=\s+Patient\s*ID|\s+Age|\s+Date|\n|$)"#, in: text) ?? "Patient"
         let ageGender = regexMatch(pattern: #"Age\s*/?\s*Gender\s*:?\s*([^\n]+?)(?=\s+Doctor|\s+Date|\n|$)"#, in: text) ?? ""
-        
         var doctor = regexMatch(pattern: #"(?:Doctor|Physician)\s*:?\s*(Dr\.[^\n]+?)(?=\s+Specimen|\s+Patient|\s+Date|\n|$)"#, in: text)
         if doctor == nil || doctor == "Signature" {
             doctor = regexMatch(pattern: #"(?:Authorized\s*/?\s*Reporting\s*Doctor)\s*:?\s*(Dr\.[^\n]+?)(?=\n|$)"#, in: text)
@@ -47,7 +52,6 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
                 break
             }
         }
-        
         return (name, ageGender, hospital, doctorName, date, title)
     }
     
@@ -55,12 +59,9 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         var items: [MedicalTestItem] = []
         let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         
-        // Universal Pattern 1: Test Name | Result | Unit | Reference Range | Flag
-        let p1 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
-        // Universal Pattern 2: Test Name | Result | Reference Range | Flag (no explicit unit)
-        let p2 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
-        // Universal Pattern 3: Test Name | Result | Unit | Reference Range (no flag)
-        let p3 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)$"#
+        let p1 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,\s]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
+        let p2 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,\s]+)\s+(.+?)\s+([\[\(]?[A-Za-z\-—]+[\]\)]?)$"#
+        let p3 = #"^([A-Za-z0-9\s\(\)\-\+\/]+?)\s+([\+\-]?[0-9\.,\s]+)\s*([A-Za-z%/µμ\^0-9\.\-]+?\/?[A-Za-z0-9μµ\^]*)\s+(.+?)$"#
         
         guard let r1 = try? NSRegularExpression(pattern: p1, options: [.caseInsensitive]),
               let r2 = try? NSRegularExpression(pattern: p2, options: [.caseInsensitive]),
@@ -69,7 +70,7 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         var inTable = false
         for line in lines {
             let lower = line.lowercased()
-            if lower.contains("results") || lower.contains("measurements") || lower.contains("panel") || lower.contains("test result") || lower.contains("parameter result") || lower.contains("profile") || lower.contains("reference range") {
+            if lower.contains("results") || lower.contains("measurements") || lower.contains("panel") || lower.contains("test result") || lower.contains("profile") || lower.contains("reference range") {
                 inTable = true
                 continue
             }
@@ -77,7 +78,6 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
                 inTable = false
                 continue
             }
-            
             let nsRange = NSRange(line.startIndex..<line.endIndex, in: line)
             if inTable || r1.firstMatch(in: line, options: [], range: nsRange) != nil {
                 if let match = r1.firstMatch(in: line, options: [], range: nsRange) {
@@ -92,30 +92,42 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         return items
     }
     
+    private func cleanName(_ raw: String) -> String? {
+        var cleaned = raw.trimmingCharacters(in: CharacterSet(charactersIn: " :-—|•\t"))
+        let lower = cleaned.lowercased()
+        guard cleaned.count >= 2, cleaned.rangeOfCharacter(from: .letters) != nil else { return nil }
+        if blacklist.contains(where: { lower == $0 || lower.hasPrefix("\($0) ") || lower.hasPrefix("\($0):") || lower.contains("/\($0)") }) {
+            return nil
+        }
+        cleaned = cleaned.replacingOccurrences(of: "Haemoglobin", with: "Hemoglobin")
+        cleaned = cleaned.replacingOccurrences(of: "Haematocrit", with: "Hematocrit")
+        return cleaned
+    }
+    
+    private func cleanVal(_ raw: String) -> String {
+        return raw.replacingOccurrences(of: #"(\d)\s+(\d)"#, with: "$1$2", options: .regularExpression)
+            .replacingOccurrences(of: #"(\d)\.\s+(\d)"#, with: "$1.$2", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+    }
+    
     private func appendNoFlagMatch(_ match: NSTextCheckingResult, line: String, items: inout [MedicalTestItem]) {
-        let tname = substring(of: line, matchRange: match.range(at: 1))
-        let lower = tname.lowercased()
-        if lower.contains("patient") || lower.contains("doctor") || lower.contains("authorized") || lower.contains("date") || lower.contains("age") || lower.contains("gender") || lower.contains("specimen") || lower.contains("test") { return }
-        let resultVal = substring(of: line, matchRange: match.range(at: 2))
+        guard let tname = cleanName(substring(of: line, matchRange: match.range(at: 1))) else { return }
+        let resultVal = cleanVal(substring(of: line, matchRange: match.range(at: 2)))
         let unit = substring(of: line, matchRange: match.range(at: 3))
         let refRange = substring(of: line, matchRange: match.range(at: 4))
         items.append(MedicalTestItem(testName: tname, resultValue: resultVal, unit: unit, referenceRange: refRange, status: .normal))
     }
     
     private func appendMatch(_ match: NSTextCheckingResult, line: String, hasUnit: Bool, items: inout [MedicalTestItem]) {
-        let tname = substring(of: line, matchRange: match.range(at: 1))
-        let lower = tname.lowercased()
-        if lower.contains("patient") || lower.contains("doctor") || lower.contains("authorized") || lower.contains("date") || lower.contains("age") || lower.contains("gender") || lower.contains("specimen") || lower.contains("test") { return }
-        
-        let resultVal = substring(of: line, matchRange: match.range(at: 2))
+        guard let tname = cleanName(substring(of: line, matchRange: match.range(at: 1))) else { return }
+        let resultVal = cleanVal(substring(of: line, matchRange: match.range(at: 2)))
         let unit = hasUnit ? substring(of: line, matchRange: match.range(at: 3)) : ""
         let refRange = substring(of: line, matchRange: match.range(at: hasUnit ? 4 : 3))
         let flagStr = substring(of: line, matchRange: match.range(at: hasUnit ? 5 : 4)).uppercased()
         
         let status: MedicalTestStatus
-        if flagStr.contains("HIGH") { status = .abnormalHigh }
+        if flagStr.contains("HIGH") || flagStr.contains("BORDERLINE") { status = .abnormalHigh }
         else if flagStr.contains("LOW") { status = .abnormalLow }
-        else if flagStr.contains("BORDERLINE") { status = .abnormalHigh }
         else if flagStr.contains("CRITICAL") { status = .critical }
         else { status = .normal }
         
@@ -145,7 +157,6 @@ final class MedicalOCRParserService: MedicalOCRParserProtocol {
         } else {
             advice.append("Maintain routine health screening as clinically indicated.")
         }
-        
         return (impression, advice)
     }
     

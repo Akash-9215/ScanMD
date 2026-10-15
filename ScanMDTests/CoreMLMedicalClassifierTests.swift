@@ -22,7 +22,7 @@ final class CoreMLMedicalClassifierTests: XCTestCase {
         let sample = "APEX CLINICAL LABORATORY\nTotal Cholesterol 245 mg/dL\nPatient Name: John"
         let features = MedicalFeatureExtractor.extractFeatures(from: sample)
         XCTAssertNotNil(features)
-        XCTAssertEqual(features?.shape, [1, 20])
+        XCTAssertEqual(features?.shape, [1, 24])
     }
     
     func testClassifyLipidProfileWithCoreML() async {
@@ -40,8 +40,8 @@ final class CoreMLMedicalClassifierTests: XCTestCase {
         
         let result = classifier.classifyDocument(from: text)
         XCTAssertTrue(result.isMedical)
-        XCTAssertGreaterThan(result.confidence, 0.5)
-        XCTAssertTrue(result.reportType.contains("Lipid") || result.reportType.contains("Medical") || result.reportType.contains("Report"))
+        XCTAssertGreaterThan(result.confidence, 0.7)
+        XCTAssertTrue(result.reportType.contains("Lipid") || result.reportType.contains("Medical"))
     }
     
     func testClassifyCompleteBloodCountWithCoreML() async {
@@ -59,7 +59,23 @@ final class CoreMLMedicalClassifierTests: XCTestCase {
         
         let result = classifier.classifyDocument(from: text)
         XCTAssertTrue(result.isMedical)
-        XCTAssertGreaterThan(result.confidence, 0.5)
+        XCTAssertGreaterThan(result.confidence, 0.7)
+    }
+    
+    func testClassifyDiabetologyWithCoreML() async {
+        let text = """
+        DIACARE ADVANCED DIAGNOSTICS
+        Department of Diabetology and Clinical Biochemistry
+        DIABETOLOGY — HbA1c PANEL
+        Patient Name: Manish Salunkhe
+        HbA1c: 8.4 %
+        Estimated Average Glucose (eAG): 194 mg/dL
+        Fasting Plasma Glucose: 168 mg/dL
+        """
+        
+        let result = classifier.classifyDocument(from: text)
+        XCTAssertTrue(result.isMedical)
+        XCTAssertGreaterThan(result.confidence, 0.7)
     }
     
     func testRejectNonMedicalReceiptWithCoreML() async {
