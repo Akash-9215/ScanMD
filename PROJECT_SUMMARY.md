@@ -85,12 +85,15 @@ ScanMD/
             ├── PDFPreviewView.swift        # Full-screen PDF previewer with Save status, Medical Report, & OCR action
             └── OCRResultView.swift         # Recognized text viewer sheet with Medical Analysis shortcut & copy toast
 ml/
-├── model_def.py                            # PyTorch MedicalClassifierNet architecture & 20-dim feature definitions
+├── model_def.py                            # PyTorch MedicalClassifierNet architecture & 28-dim feature definitions (12 categories)
 ├── train_medical_classifier.py             # Model training loop & coremltools export pipeline (.mlpackage)
-├── requirements.txt                        # Python ML dependencies (torch, coremltools, numpy)
+├── sample_reports_extracted.json           # Extracted textual corpus of 177 reports across 7 clinical categories & 59 report types
+├── real_clinic_samples.json                # 138 real clinical lab report samples
+├── synthetic_reports.json                  # 12 synthetic medical reports benchmark
+├── requirements.txt                        # Python ML dependencies (torch, coremltools, pymupdf, numpy)
 └── README.md                               # ML architecture, training guide & dataset documentation
 ScanMDTests/
-├── CoreMLMedicalClassifierTests.swift       # On-device Core ML neural classifier unit tests (5 test cases)
+├── CoreMLMedicalClassifierTests.swift       # On-device Core ML neural classifier unit tests (7 test cases across clinical domains)
 ├── SpatialLayoutOCRTests.swift             # Spatial layout line reconstruction & column clustering tests
 ├── MedicalOCRParserTests.swift             # Universal clinical OCR parsing & lab table extraction tests
 ├── MedicalClassifierTests.swift            # NaturalLanguage semantic AI classifier unit tests
@@ -127,9 +130,9 @@ ScanMDTests/
 | **Document Scanning** | `DocumentScannerView`, `VNDocumentCameraRepresentable`, `DocumentScannerViewModel` | ✅ Complete | Full-screen camera scanner interface with VisionKit, temporary preview rendering & explicit user saving |
 | **PDF Generation** | `PDFGeneratorService`, `PDFKitViewRepresentable`, `PDFPreviewView` | ✅ Complete | Multi-page PDF renderer & full-screen previewer with saved status badge |
 | **OCR Text Recognition** | `OCRService`, `OCRResultView` | ✅ Complete | Spatial layout-aware Vision & PDFKit accurate text extraction preserving multi-column tables |
-| **Medical Document Verification & Analysis** | `MedicalClassifierModel`, `CoreMLMedicalClassifierService`, `MedicalFeatureExtractor`, `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Hardware-accelerated Apple Core ML neural document classifier trained on 138 real clinical lab reports + 12 synthetic reports with Softmax calibration, strict separation of high-level report Test Type (e.g. Complete Blood Count, Lipid Profile) from individual Test Names inside tabular results, and pathologist reasoning |
+| **Medical Document Verification & Analysis** | `MedicalClassifierModel`, `CoreMLMedicalClassifierService`, `MedicalFeatureExtractor`, `MedicalDocumentClassifierService`, `MedicalAnalysisService`, `MedicalAnalysisViewModel`, `MedicalReportView`, `MedicalTestTable` | ✅ Complete | Hardware-accelerated Apple Core ML neural document classifier trained on 177 sample medical reports from `SampaleReport/` (7 major clinical disciplines, 59 report types) + 138 real clinical lab reports + 12 synthetic reports with Softmax calibration, 28-dimensional normalized clinical signals, strict report test typing, and pathologist reasoning |
 | **Document Library** | `DocumentStorageService`, `DocumentLibraryViewModel`, `DocumentLibraryView`, `DocumentRowCard` | ✅ Complete | Persistent storage with `documentStorageDidChange` observer updates & search |
-| **Unit & Integration Test Suite** | `ScanMDTests` (`CoreMLMedicalClassifierTests`, `SpatialLayoutOCRTests`, `MedicalOCRParserTests`, `MedicalClassifierTests`, `PredictiveDiagnosticEngineTests`, `MedicalReportModelTests`, `EndToEndScanIntegrationTests`) | ✅ Complete | Automated XCTest suite wired to Xcode Project Navigator and Test Navigator (19/19 passing) |
+| **Unit & Integration Test Suite** | `ScanMDTests` (`CoreMLMedicalClassifierTests`, `SpatialLayoutOCRTests`, `MedicalOCRParserTests`, `MedicalClassifierTests`, `PredictiveDiagnosticEngineTests`, `MedicalReportModelTests`, `EndToEndScanIntegrationTests`) | ✅ Complete | Automated XCTest suite wired to Xcode Project Navigator and Test Navigator (21/21 passing) |
 
 ---
 

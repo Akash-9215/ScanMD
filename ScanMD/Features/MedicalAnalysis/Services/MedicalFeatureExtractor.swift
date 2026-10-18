@@ -8,7 +8,7 @@
 import CoreML
 import Foundation
 
-/// Extracts 24-dimensional normalized clinical and structural features matching trained PyTorch Core ML model.
+/// Extracts 28-dimensional normalized clinical and structural features matching trained PyTorch Core ML model.
 enum MedicalFeatureExtractor {
     private static let medKeywords: Set<String> = [
         "medicine", "doctor", "patient", "hospital", "pathology", "specimen",
@@ -16,19 +16,22 @@ enum MedicalFeatureExtractor {
         "report", "test", "profile", "count", "biopsy", "examination", "impression",
         "advice", "haemoglobin", "hemoglobin", "glucose", "urea", "creatinine",
         "bilirubin", "cholesterol", "urine", "plasma", "platelet", "hematology",
-        "biochemistry", "unit", "result", "normal", "abnormal", "interval", "investigation"
+        "biochemistry", "unit", "result", "normal", "abnormal", "interval", "investigation",
+        "microbiology", "radiology", "imaging", "ultrasound", "culture", "sensitivity",
+        "histopathology", "cytology", "findings", "radiograph", "scan", "organism"
     ]
     
     private static let nonMedKeywords: Set<String> = [
         "coffee", "receipt", "invoice", "subtotal", "tax", "price", "menu",
         "checkout", "bill", "item", "qty", "payment", "visa", "mastercard",
         "total", "store", "customer", "cashier", "discount", "terminal",
-        "shipping", "order", "delivery", "espresso", "latte", "burger", "pizza"
+        "shipping", "order", "delivery", "espresso", "latte", "burger", "pizza",
+        "flight", "airline", "gate", "boarding", "pass", "ticket", "parking", "hotel"
     ]
     
-    /// Generates MLMultiArray formatted as 1x24 matrix of Float32 for Core ML inference.
+    /// Generates MLMultiArray formatted as 1x28 matrix of Float32 for Core ML inference.
     static func extractFeatures(from text: String) -> MLMultiArray? {
-        guard let array = try? MLMultiArray(shape: [1, 24], dataType: .float32) else {
+        guard let array = try? MLMultiArray(shape: [1, 28], dataType: .float32) else {
             return nil
         }
         
@@ -45,35 +48,40 @@ enum MedicalFeatureExtractor {
         let medMatches = words.filter { medKeywords.contains($0) }.count
         let nonMedMatches = words.filter { nonMedKeywords.contains($0) }.count
         
-        let unitsPat = #"(?:mg/dl|g/dl|mmol/l|u/l|%|pg/ml|ng/dl|ng/ml|µiu/ml|uiu/ml|fl|pg|cells|mill|cumm|bpm|ms|mm/hr|eu/dl)"#
+        let unitsPat = #"(?:mg/dl|g/dl|mmol/l|u/l|%|pg/ml|ng/dl|ng/ml|µiu/ml|uiu/ml|fl|pg|cells|mill|cumm|bpm|ms|mm/hr|eu/dl|cfu/ml|iu/l|x10\^3|x10\^6)"#
         let unitsRegex = try? NSRegularExpression(pattern: unitsPat, options: .caseInsensitive)
         let unitMatches = unitsRegex?.numberOfMatches(in: lower, range: NSRange(location: 0, length: lower.utf16.count)) ?? 0
         
         let rangeRegex = try? NSRegularExpression(pattern: #"\d+(?:\.\d+)?\s*(?:-|–|to)\s*\d+(?:\.\d+)?"#)
         let rangeMatches = rangeRegex?.numberOfMatches(in: lower, range: NSRange(location: 0, length: lower.utf16.count)) ?? 0
         
-        let hasHdr = ["patient name", "age:", "gender:", "ref by:", "collected:", "lab no", "patient id", "visit no", "registered"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
+        let hasHdr = ["patient name", "age:", "gender:", "ref by:", "ref. by:", "specimen:", "collected:", "lab no", "lab id", "patient id", "visit no", "registered"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
         
-        let cbc = ["hemoglobin", "haemoglobin", "wbc", "rbc", "platelet", "hematocrit", "haematocrit", "neutrophil", "lymphocyte", "mcv", "mch", "mchc", "esr", "blood picture"].filter { lower.contains($0) }.count
-        let lipid = ["cholesterol", "triglycerides", "triglyceride", "hdl", "ldl", "vldl", "lipid"].filter { lower.contains($0) }.count
-        let liver = ["bilirubin", "sgot", "sgpt", "alt", "ast", "alp", "protein", "albumin", "globulin", "hepatic"].filter { lower.contains($0) }.count
-        let renal = ["creatinine", "urea", "bun", "uric acid", "egfr", "kidney", "renal"].filter { lower.contains($0) }.count
-        let diabetic = ["glucose", "hba1c", "sugar", "fasting", "post prandial", "insulin", "diabetology", "eag", "glycated"].filter { lower.contains($0) }.count
-        let urinalysis = ["urine", "pus cells", "epithelial", "specific gravity", "urobilinogen", "nitrite", "casts", "crystals", "urinalysis"].filter { lower.contains($0) }.count
-        let endocrine = ["tsh", "thyroid", "t3", "t4", "ft3", "ft4", "hormone", "vitamin", "b12", "folate", "ferritin"].filter { lower.contains($0) }.count
-        let cardio = ["ecg", "troponin", "bnp", "sinus", "rhythm", "ventricular", "pr interval", "qrs", "qtc", "lead"].filter { lower.contains($0) }.count
-        let radiology = ["x-ray", "radiograph", "radiology", "chest", "pa view", "lung", "spine", "mri", "bone", "fracture", "vertebra"].filter { lower.contains($0) }.count
-        let discharge = ["discharge", "admission", "hospital", "clinical course", "emergency", "vitals", "discharge summary"].filter { lower.contains($0) }.count
+        let cbc = ["hemoglobin", "haemoglobin", "wbc", "rbc", "platelet", "hematocrit", "haematocrit", "neutrophil", "lymphocyte", "monocyte", "eosinophil", "basophil", "mcv", "mch", "mchc", "esr", "blood picture", "blood grouping", "coagulation", "prothrombin", "inr"].filter { lower.contains($0) }.count
+        let lipid = ["cholesterol", "triglycerides", "triglyceride", "hdl", "ldl", "vldl", "lipid", "apolipoprotein"].filter { lower.contains($0) }.count
+        let liver = ["bilirubin", "sgot", "sgpt", "alt", "ast", "alp", "alkaline phosphatase", "protein", "albumin", "globulin", "hepatic", "ggt"].filter { lower.contains($0) }.count
+        let renal = ["creatinine", "urea", "bun", "uric acid", "egfr", "kidney", "renal", "microalbumin"].filter { lower.contains($0) }.count
+        let diabetic = ["glucose", "hba1c", "sugar", "fasting", "post prandial", "insulin", "diabetology", "eag", "glycated", "c-peptide"].filter { lower.contains($0) }.count
+        let urinalysis = ["urine routine", "urinalysis", "pus cells", "epithelial", "specific gravity", "urobilinogen", "nitrite", "casts", "crystals", "24-hour urine"].filter { lower.contains($0) }.count
+        let endocrine = ["tsh", "thyroid", "t3", "t4", "ft3", "ft4", "hormone", "vitamin", "b12", "folate", "ferritin", "psa", "ca-125", "cea", "afp", "testosterone", "cortisol"].filter { lower.contains($0) }.count
         
-        let code = ["import ", "export ", "function", "const ", "let ", "var ", "return ", "class ", "def ", "println"].filter { lower.contains($0) }.count
-        let currency = ["$", "€", "£", "₹", "usd", "tax:", "subtotal", "change:", "cash:"].filter { lower.contains($0) }.count
+        let microbiology = ["culture & sensitivity", "culture", "sensitivity", "organism", "colony count", "cfu/ml", "sterile", "resistant", "susceptible", "gram stain", "dengue", "malaria", "hiv", "hepatitis", "hbsag", "vdrl", "rpr", "widal", "typhoid", "serology", "swab", "isolate"].filter { lower.contains($0) }.count
+        let histopathology = ["biopsy", "histopathology", "cytology", "pap smear", "fnac", "fine needle", "malignant", "benign", "microscopic examination", "gross examination", "carcinoma", "dysplasia", "atypical cells", "lymph node", "bone marrow examination", "tissue section"].filter { lower.contains($0) }.count
+        let bodyFluids = ["cerebrospinal", "csf", "synovial", "pleural", "ascitic", "peritoneal", "stool routine", "occult blood", "stool analysis", "fluid analysis"].filter { lower.contains($0) }.count
+        let radiology = ["x-ray", "radiograph", "radiology", "chest pa", "pa view", "ap view", "lung fields", "spine", "mri", "ct scan", "ultrasound", "usg", "sonography", "echocardiogram", "doppler", "vertebra", "fracture", "computed tomography", "visualized"].filter { lower.contains($0) }.count
+        let cardioFunctional = ["ecg", "ekg", "eeg", "emg", "ncs", "holter", "treadmill test", "tmt", "stress test", "spirometry", "pft", "sinus rhythm", "pr interval", "qrs", "qtc", "ventricular rate", "nerve conduction", "electromyography", "electroencephalogram", "fev1", "fvc"].filter { lower.contains($0) }.count
+        
+        let discharge = ["discharge summary", "discharge", "admission date", "hospital course", "clinical course", "emergency department", "discharge vitals"].filter { lower.contains($0) }.count
+        let code = ["import ", "export ", "function", "const ", "let ", "var ", "return ", "class ", "def ", "println", "interface "].filter { lower.contains($0) }.count
+        let currency = ["$", "€", "£", "₹", "usd", "tax:", "subtotal", "change:", "cash:", "total due", "visa ending", "mastercard"].filter { lower.contains($0) }.count
         
         let digits = text.filter { $0.isNumber }.count
         let uppers = text.filter { $0.isUppercase }.count
         let tableLines = lines.filter { $0.range(of: #"\d+\.?\d*\s+[a-zA-Z/%]+"#, options: .regularExpression) != nil }.count
         
-        let pathologist = ["pathologist", "biochemist", "impression", "signature", "dr.", "consultant", "attending"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
-        let facility = ["laboratory", "laboratories", "lab", "diagnostics", "hospital", "centre", "center", "clinic", "mokhtabar", "alfa"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
+        let pathologist = ["pathologist", "biochemist", "radiologist", "microbiologist", "dr.", "consultant", "attending", "signature", "reported by", "verified by", "technologist"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
+        let facility = ["laboratory", "laboratories", "lab", "diagnostics", "hospital", "centre", "center", "clinic", "mediscan", "citycare", "arya", "sample diagnostics"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
+        let impression = ["impression:", "diagnostic impression", "clinical impression", "advice:", "findings:", "clinical correlation", "interpretation:", "conclusion:"].contains(where: { lower.contains($0) }) ? 1.0 : 0.0
         
         let values: [Float] = [
             min(1.0, Float(medMatches) / Float(totalWords)),
@@ -88,8 +96,11 @@ enum MedicalFeatureExtractor {
             min(1.0, Float(diabetic) / 3.0),
             min(1.0, Float(urinalysis) / 3.0),
             min(1.0, Float(endocrine) / 3.0),
-            min(1.0, Float(cardio) / 2.0),
-            min(1.0, Float(radiology) / 2.0),
+            min(1.0, Float(microbiology) / 3.0),
+            min(1.0, Float(histopathology) / 3.0),
+            min(1.0, Float(bodyFluids) / 2.0),
+            min(1.0, Float(radiology) / 3.0),
+            min(1.0, Float(cardioFunctional) / 3.0),
             min(1.0, Float(discharge) / 2.0),
             min(1.0, Float(code) / 4.0),
             min(1.0, Float(currency) / 3.0),
@@ -99,7 +110,8 @@ enum MedicalFeatureExtractor {
             min(1.0, Float(totalWords) / 200.0),
             min(1.0, Float(tableLines) / Float(totalLines)),
             Float(pathologist),
-            Float(facility)
+            Float(facility),
+            Float(impression)
         ]
         
         for (i, val) in values.enumerated() {

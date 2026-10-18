@@ -22,7 +22,7 @@ final class CoreMLMedicalClassifierTests: XCTestCase {
         let sample = "APEX CLINICAL LABORATORY\nTotal Cholesterol 245 mg/dL\nPatient Name: John"
         let features = MedicalFeatureExtractor.extractFeatures(from: sample)
         XCTAssertNotNil(features)
-        XCTAssertEqual(features?.shape, [1, 24])
+        XCTAssertEqual(features?.shape, [1, 28])
     }
     
     func testClassifyLipidProfileWithCoreML() async {
@@ -76,6 +76,43 @@ final class CoreMLMedicalClassifierTests: XCTestCase {
         let result = classifier.classifyDocument(from: text)
         XCTAssertTrue(result.isMedical)
         XCTAssertGreaterThan(result.confidence, 0.7)
+    }
+    
+    func testClassifyRadiologyWithCoreML() async {
+        let text = """
+        CITYCARE DIAGNOSTICS
+        Department of Radiology & Imaging
+        X-RAY CHEST (PA VIEW)
+        Patient: Mr. Rahul Sharma Age: 42
+        Findings: Both lung fields are clear. Costophrenic angles are sharp.
+        Cardiac silhouette is normal in transverse diameter.
+        Impression: No active pulmonary parenchymal lesion identified. Normal chest radiograph.
+        Radiologist: Dr. K. Patel, MD
+        """
+        
+        let result = classifier.classifyDocument(from: text)
+        XCTAssertTrue(result.isMedical)
+        XCTAssertGreaterThan(result.confidence, 0.7)
+        XCTAssertTrue(result.reportType.contains("Radiology") || result.reportType.contains("Clinical"))
+    }
+    
+    func testClassifyMicrobiologyWithCoreML() async {
+        let text = """
+        MEDISCAN IMAGING & LABS
+        Department of Microbiology & Serology
+        URINE CULTURE & SENSITIVITY
+        Patient: Mrs. Anita Desai Age: 34
+        Specimen: Clean catch midstream urine
+        Colony Count: > 100,000 CFU/mL
+        Organism: Escherichia coli
+        Susceptible: Amikacin, Nitrofurantoin, Ciprofloxacin
+        Microbiologist: Dr. R. Iyer, MD
+        """
+        
+        let result = classifier.classifyDocument(from: text)
+        XCTAssertTrue(result.isMedical)
+        XCTAssertGreaterThan(result.confidence, 0.7)
+        XCTAssertTrue(result.reportType.contains("Microbiology") || result.reportType.contains("Clinical"))
     }
     
     func testRejectNonMedicalReceiptWithCoreML() async {

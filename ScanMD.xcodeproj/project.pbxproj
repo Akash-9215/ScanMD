@@ -6,6 +6,16 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		2EE5B1D53078918000C2193B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EE5B1A83078917E00C2193B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2EE5B1AF3078917E00C2193B;
+			remoteInfo = ScanMD;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2EE5B1B03078917E00C2193B /* ScanMD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScanMD.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2EE5B1C03078918000C2193B /* ScanMDTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScanMDTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -36,24 +46,6 @@
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		2EE5B1D53078918000C2193B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2EE5B1A83078917E00C2193B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 2EE5B1AF3078917E00C2193B;
-			remoteInfo = ScanMD;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		2EE5B1D43078918000C2193B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 2EE5B1AF3078917E00C2193B /* ScanMD */;
-			targetProxy = 2EE5B1D53078918000C2193B /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXGroup section */
 		2EE5B1A73078917E00C2193B = {
@@ -181,6 +173,14 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2EE5B1D43078918000C2193B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2EE5B1AF3078917E00C2193B /* ScanMD */;
+			targetProxy = 2EE5B1D53078918000C2193B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2EE5B1B93078918000C2193B /* Debug configuration for PBXProject "ScanMD" */ = {
